@@ -2,9 +2,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody))]
-
 [RequireComponent(typeof(Collider))]
-public class PlayerMovement2D : MonoBehaviour
+public class PlayerExploration : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
@@ -22,6 +21,11 @@ public class PlayerMovement2D : MonoBehaviour
     [Header("Platform Drop")]
     [SerializeField] private string oneWayPlatformLayerName = "OneWayPlatform";
 
+    [Header("Interaction")]
+    [SerializeField] private Transform interactCheck;
+    [SerializeField] private float interactRadius = 1.5f;
+    [SerializeField] private LayerMask interactableLayers; // set this to the "Interactables" layer in the Inspector
+
     private Rigidbody rb;
 
     private PlayerInputAction controls;
@@ -37,19 +41,14 @@ public class PlayerMovement2D : MonoBehaviour
     private int playerLayer;
     private int oneWayPlatformLayer;
 
+    private Interactables currentInteractable;
+    private bool interactRequested;
+
+    public Interactables CurrentInteractable => currentInteractable;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
-
-        controls = new PlayerInputAction();
-
-        rb.constraints =
-            RigidbodyConstraints.FreezePositionZ |
-            RigidbodyConstraints.FreezeRotationX |
-            RigidbodyConstraints.FreezeRotationY |
-            RigidbodyConstraints.FreezeRotationZ;
-
-        rb.useGravity = true;
 
         playerLayer = gameObject.layer;
         oneWayPlatformLayer = LayerMask.NameToLayer(oneWayPlatformLayerName);
@@ -57,23 +56,44 @@ public class PlayerMovement2D : MonoBehaviour
 
     private void OnEnable()
     {
-        controls.Enable();
-
-        controls.Movement.Move.performed += OnMove;
-        controls.Movement.Move.canceled += OnMove;
+        SubscribeInput(true);
     }
 
     private void OnDisable()
     {
-        controls.Movement.Move.performed -= OnMove;
-        controls.Movement.Move.canceled -= OnMove;
+        SubscribeInput(false);
+    }
 
-        controls.Disable();
+    public void Init(PlayerInputAction controls)
+    {
+        this.controls = controls;
+        SubscribeInput(true);
+    }
+
+    public void SubscribeInput(bool isSubscribe)
+    {
+        if (controls == null) return;
+
+        controls.Exploration.Move.performed -= OnMove;
+        controls.Exploration.Move.canceled -= OnMove;
+        controls.Exploration.Interact.performed -= OnInteract;
+
+        if (isSubscribe)
+        {
+            controls.Exploration.Move.performed += OnMove;
+            controls.Exploration.Move.canceled += OnMove;
+            controls.Exploration.Interact.performed += OnInteract;
+        }
     }
 
     private void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
+    }
+
+    private void OnInteract(InputAction.CallbackContext context)
+    {
+        interactRequested = true;
     }
 
     private void Update()
@@ -84,6 +104,9 @@ public class PlayerMovement2D : MonoBehaviour
 
         HandleCurrentPlatform();
         HandleDropRequest();
+
+        HandleInteractDetection();
+        HandleInteractRequest();
     }
 
     private void FixedUpdate()
@@ -179,6 +202,53 @@ public class PlayerMovement2D : MonoBehaviour
 
         rb.linearVelocity = velocity;
     }
+
+    private void HandleInteractDetection()
+    {
+        if (interactCheck == null)
+        {
+            currentInteractable = null;
+            return;
+        }
+
+        Collider[] hits = Physics.OverlapSphere(
+            interactCheck.position,
+            interactRadius,
+            interactableLayers);
+
+        Interactables closest = null;
+        float closestSqrDist = float.MaxValue;
+
+        foreach (Collider hit in hits)
+        {
+            // Layer mask narrows the candidate set; component check confirms it's a real interactable
+            Interactables interactable = hit.GetComponent<Interactables>();
+            if (interactable == null)
+                continue;
+
+            float sqrDist = (hit.transform.position - interactCheck.position).sqrMagnitude;
+            if (sqrDist < closestSqrDist)
+            {
+                closestSqrDist = sqrDist;
+                closest = interactable;
+            }
+        }
+
+        currentInteractable = closest;
+    }
+
+    private void HandleInteractRequest()
+    {
+        if (interactRequested)
+        {
+            if (currentInteractable != null)
+            {
+                currentInteractable.Interact();
+            }
+
+            interactRequested = false;
+        }
+    }
     #endregion
 
     private IEnumerator DropThroughPlatform()
@@ -213,12 +283,20 @@ public class PlayerMovement2D : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (groundCheck == null)
-            return;
+        if (groundCheck != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(
+                groundCheck.position,
+                groundCheckRadius);
+        }
 
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(
-            groundCheck.position,
-            groundCheckRadius);
+        if (interactCheck != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(
+                interactCheck.position,
+                interactRadius);
+        }
     }
 }
