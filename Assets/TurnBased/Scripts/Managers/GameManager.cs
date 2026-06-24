@@ -1,47 +1,34 @@
 using System;
+using Fungus;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum GameState
+{
+    Exploration,
+    DialogueCutscene,
+    Combat
+}
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
 
-    public enum GameState
-    {
-        Exploration,
-        DialogueCutscene,
-        Combat
-    }
-
-    /// <summary>Fired whenever the state changes. Subscribers receive (oldState, newState).</summary>
-    public event Action<GameState, GameState> OnStateChanged;
     [Header("Current State (read-only at runtime)")]
     [SerializeField] private GameState currentState = GameState.Exploration;
-    public GameState CurrentState => currentState;
     private GameState previousState;
     public bool IsExploration => currentState == GameState.Exploration;
     public bool IsDialogueOrCutscene => currentState == GameState.DialogueCutscene;
     public bool IsCombat => currentState == GameState.Combat;
 
     [Header("Level References")]
-    [SerializeField] private Camera mainCamera;
+    [SerializeField] private CameraTransitionController cameraTransitionController;
+    [SerializeField] private CombatManager combat;
     [SerializeField] private CanvasManager canvas;
     [SerializeField] private PlayerManager player;
     private PlayerInputAction playerControls;
 
-    private void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        Instance = this;
-        // Uncomment if GameManager needs to survive scene loads:
-        // DontDestroyOnLoad(gameObject);
-    }
+    [Header("DEBUGS")]
+    [SerializeField] private GameState targetGameStateDebug;
 
     private void Start()
     {
@@ -51,15 +38,48 @@ public class GameManager : MonoBehaviour
     private void Init()
     {
         playerControls = new();
+        playerControls.General.Enable();
+        playerControls.General.Escape.performed += OnEscapePerformed;
 
-        // Run entry logic once at startup so anything that subscribed in its own Start()
-        // is still correctly initialized for the starting state.
         EnterState(currentState);
 
+        combat.Init(playerControls);
+        cameraTransitionController.Init(currentState);
         player.Init(playerControls);
+        player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
+
         canvas.Init(playerControls);
     }
 
+    private void OnEscapePerformed(InputAction.CallbackContext ctx)
+    {
+        if (IsExploration)
+        {
+            ChangeState(GameState.Combat);
+        }
+        else if (IsCombat)
+        {
+            ChangeState(GameState.Exploration);
+        }
+    }
+
+    private void HandleOnPlayerInteracted(bool isInteracting)
+    {
+        LogMessage($"HandleOnPlayerInteracted {isInteracting}");
+        if (isInteracting)
+        {
+            ChangeState(GameState.DialogueCutscene);
+        }
+        else
+        {
+            if (currentState == GameState.DialogueCutscene)
+            {
+                RevertToPreviousState();
+            }
+        }
+    }
+
+    #region State Handlers
     /// <summary>Primary entry point for switching game state.</summary>
     public void ChangeState(GameState newState)
     {
@@ -75,7 +95,13 @@ public class GameManager : MonoBehaviour
 
         EnterState(newState);
 
-        OnStateChanged?.Invoke(oldState, newState);
+        cameraTransitionController.HandleStateChanged(oldState, newState);
+    }
+
+    [ContextMenu("DEBUG/ChangeStateDebug")]
+    private void ChangeState_Debug()
+    {
+        ChangeState(targetGameStateDebug);
     }
 
     /// <summary>
@@ -120,29 +146,27 @@ public class GameManager : MonoBehaviour
                 break;
         }
     }
-
-    // ---- Convenience wrappers ----------------------------------------------------------
-    // Handy for hooking up directly to UnityEvents in the Inspector (e.g. a trigger collider's
-    // OnTriggerEnter UnityEvent, or a dialogue node's "on end" callback) without needing the
-    // enum exposed in the Editor dropdown.
-    public void EnterExploration() => ChangeState(GameState.Exploration);
-    public void EnterDialogueCutscene() => ChangeState(GameState.DialogueCutscene);
-    public void EnterCombat() => ChangeState(GameState.Combat);
+    #endregion
 
     #region Player Input
 
-    private void EnablePlayerInput(GameManager.GameState state) => GetMap(state)?.Enable();
-    private void DisablePlayerInput(GameManager.GameState state) => GetMap(state)?.Disable();
+    private void EnablePlayerInput(GameState state) => GetMap(state)?.Enable();
+    private void DisablePlayerInput(GameState state) => GetMap(state)?.Disable();
 
-    private InputActionMap GetMap(GameManager.GameState state)
+    private InputActionMap GetMap(GameState state)
     {
         return state switch
         {
-            GameManager.GameState.Exploration => playerControls.Exploration.Get(),
-            GameManager.GameState.DialogueCutscene => playerControls.Dialogue.Get(),
-            GameManager.GameState.Combat => playerControls.Combat.Get(),
+            GameState.Exploration => playerControls.Exploration.Get(),
+            GameState.DialogueCutscene => playerControls.Dialogue.Get(),
+            GameState.Combat => playerControls.Combat.Get(),
             _ => null,
         };
     }
     #endregion
+
+    private void LogMessage(string msg)
+    {
+        Debug.Log($"[GameManager] {msg}");
+    }
 }

@@ -1,10 +1,13 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
 public class PlayerExploration : MonoBehaviour
 {
+    public UnityAction<bool> OnPlayerInteracted;
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
 
@@ -243,11 +246,22 @@ public class PlayerExploration : MonoBehaviour
         {
             if (currentInteractable != null)
             {
-                currentInteractable.Interact();
+                bool isInteracting = currentInteractable.Interact(HandleOnInteractionEnd);
+                if (isInteracting)
+                {
+                    LogMessage($"OnPlayerInteracted {true}");
+                    OnPlayerInteracted?.Invoke(true);
+                }
             }
 
             interactRequested = false;
         }
+    }
+
+    private void HandleOnInteractionEnd()
+    {
+        LogMessage($"OnPlayerInteracted {false}");
+        OnPlayerInteracted?.Invoke(false);
     }
     #endregion
 
@@ -298,5 +312,10 @@ public class PlayerExploration : MonoBehaviour
                 interactCheck.position,
                 interactRadius);
         }
+    }
+
+    private void LogMessage(string msg)
+    {
+        Debug.Log($"[PlayerExploration] {msg}");
     }
 }

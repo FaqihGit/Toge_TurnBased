@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 7546855783286970587}
   - component: {fileID: 1798305131897936611}
   - component: {fileID: 6283462567513806996}
-  - component: {fileID: 2820698750500509081}
   - component: {fileID: 5492198718374544347}
   - component: {fileID: 3420312124515909062}
+  - component: {fileID: 5431367376924219456}
   m_Layer: 0
   m_Name: Flowchart
   m_TagString: Untagged
@@ -63,8 +63,7 @@ MonoBehaviour:
     height: 859
   selectedBlocks:
   - {fileID: 1798305131897936611}
-  selectedCommands:
-  - {fileID: 3420312124515909062}
+  selectedCommands: []
   variables: []
   description: 
   stepPause: 0
@@ -102,7 +101,7 @@ MonoBehaviour:
   eventHandler: {fileID: 0}
   commandList:
   - {fileID: 3420312124515909062}
-  - {fileID: 2820698750500509081}
+  - {fileID: 5431367376924219456}
   suppressAllAutoSelections: 0
 --- !u!114 &6283462567513806996
 MonoBehaviour:
@@ -120,38 +119,17 @@ MonoBehaviour:
     serializedVersion: 2
     x: 377.095
     y: -17
-    width: 102.69
+    width: 107.21
     height: 40
   tint: {r: 1, g: 1, b: 1, a: 1}
   useCustomTint: 0
   itemId: 3
-  blockName: EndBlock
+  blockName: EndDialog
   description: 
   eventHandler: {fileID: 0}
   commandList:
   - {fileID: 5492198718374544347}
   suppressAllAutoSelections: 0
---- !u!114 &2820698750500509081
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7908406276732331627}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 050fb9e6e72f442b3b883da8a965bdeb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fungus::Fungus.Call
-  itemId: 5
-  indentLevel: 0
-  targetFlowchart: {fileID: 0}
-  targetBlock: {fileID: 6283462567513806996}
-  startLabel:
-    stringRef: {fileID: 0}
-    stringVal: 
-  startIndex: 0
-  callMode: 0
 --- !u!114 &5492198718374544347
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -288,6 +266,31 @@ MonoBehaviour:
   stringEvent:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5431367376924219456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7908406276732331627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841589fc622bc494aa5405f416fa1301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fungus::Fungus.Menu
+  itemId: 8
+  indentLevel: 0
+  text: Halo
+  description: 
+  targetBlock: {fileID: 6283462567513806996}
+  hideIfVisited: 0
+  interactable:
+    booleanRef: {fileID: 0}
+    booleanVal: 1
+  setMenuDialog: {fileID: 0}
+  hideThisOption:
+    booleanRef: {fileID: 0}
+    booleanVal: 0
 --- !u!1 &8143532613015471652
 GameObject:
   m_ObjectHideFlags: 0

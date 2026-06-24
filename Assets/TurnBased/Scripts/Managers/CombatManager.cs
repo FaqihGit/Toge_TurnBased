@@ -1,16 +1,47 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class CombatManager : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private PlayerInputAction playerControls;
+
+    void OnEnable()
     {
-        
+        SubscribePlayerControls(true);
     }
 
-    // Update is called once per frame
-    void Update()
+    void OnDisable()
     {
-        
+        SubscribePlayerControls(false);
+    }
+
+    public void Init(PlayerInputAction playerControls)
+    {
+        this.playerControls = playerControls;
+        SubscribePlayerControls(true);
+    }
+
+    private void SubscribePlayerControls(bool isSubscribe)
+    {
+        if (playerControls == null) return;
+
+        playerControls.Combat.Select.performed -= OnSelect;
+        playerControls.Combat.Selection.performed -= OnSelection;
+
+        if (isSubscribe)
+        {
+            playerControls.Combat.Select.performed += OnSelect;
+            playerControls.Combat.Selection.performed += OnSelection;
+        }
+    }
+
+    private void OnSelect(InputAction.CallbackContext ctx)
+    {
+
+    }
+
+    private void OnSelection(InputAction.CallbackContext ctx)
+    {
+
     }
 }

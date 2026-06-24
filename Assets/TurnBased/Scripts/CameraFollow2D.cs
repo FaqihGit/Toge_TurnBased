@@ -1,27 +1,9 @@
 using UnityEngine;
 
-/// <summary>
-/// Generic 2D-style camera follow for a 3D scene where movement is restricted
-/// to the X/Y plane (Z is unused/constant on the player). Smooth damping
-/// per-axis, a configurable dead-zone (camera only corrects once the target
-/// leaves a box around it, rather than tracking 1:1), and velocity-based
-/// look-ahead (camera leans slightly in the direction of travel).
-///
-/// Uses the standard 3D Rigidbody rather than Rigidbody2D, since the scene
-/// itself is 3D - only the gameplay movement is constrained to two axes.
-/// Z from the Rigidbody's velocity is simply ignored.
-///
-/// Architecture follows the standard side-scroller camera pattern described
-/// in Itay Keren's GDC talk "Scroll Back: The Theory and Practice of Cameras
-/// in Side-Scrollers" (dead-zone + look-ahead), with the actual easing done
-/// via Unity's SmoothDamp (a critically-damped spring) - the same underlying
-/// math Cinemachine uses for its Damping fields.
-///
-/// Attach this to the Main Camera (or a camera rig parent) and assign Target.
-/// </summary>
-[RequireComponent(typeof(Camera))]
 public class CameraFollow2D : MonoBehaviour
 {
+    [SerializeField] private Camera _cam;
+
     [Header("Target")]
     [Tooltip("The object the camera follows (usually the player root transform).")]
     [SerializeField] private Transform target;
@@ -64,11 +46,9 @@ public class CameraFollow2D : MonoBehaviour
     private Vector2 _lookAheadCurrent;  // current eased look-ahead offset
     private Vector2 _lookAheadVelocity; // SmoothDamp velocity for the offset above
     private Vector3 _lastTargetPosition;
-    private Camera _cam;
 
     private void Awake()
     {
-        _cam = GetComponent<Camera>();
         if (target != null)
             _lastTargetPosition = target.position;
     }
