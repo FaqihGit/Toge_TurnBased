@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Fungus;
 using UnityEngine;
 using UnityEngine.Events;
@@ -6,8 +7,20 @@ public class Interactables : MonoBehaviour
 {
     private UnityAction OnEndDialogAction;
 
+    [Header("Data References")]
+    [SerializeField] private UnitDataSO npcData;
+    [SerializeField] private List<UnitDataSO> teamDataList;
+
+    [Header("Component References")]
     [SerializeField] private Flowchart npcFlowchart;
+    [SerializeField] private Character npcCharacter;
     private bool isInteracting;
+
+    [ContextMenu("Init")]
+    public void Init()
+    {
+        npcCharacter.SetStandardText(npcData.name);
+    }
 
     public bool Interact(UnityAction OnEndDialogCallback)
     {

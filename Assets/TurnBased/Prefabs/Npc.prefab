@@ -418,7 +418,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5108669327c860d4a89f3ad3e6e4fafa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactables
+  npcData: {fileID: 11400000, guid: 80520bde8f380254f8d580dbbfc45cdb, type: 2}
+  teamDataList: []
   npcFlowchart: {fileID: 7546855783286970587}
+  npcCharacter: {fileID: 8944697830798066471}
 --- !u!114 &8944697830798066471
 MonoBehaviour:
   m_ObjectHideFlags: 0

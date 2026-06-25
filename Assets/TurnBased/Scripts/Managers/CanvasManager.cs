@@ -36,10 +36,16 @@ public class CanvasManager : MonoBehaviour
         playerControls.Dialogue.Selection.performed -= OnSelection;
         playerControls.Dialogue.Select.performed -= OnSelect;
 
+        playerControls.Combat.Selection.performed -= OnSelection;
+        playerControls.Combat.Select.performed -= OnSelect;
+
         if (isSubscribe)
         {
             playerControls.Dialogue.Selection.performed += OnSelection;
             playerControls.Dialogue.Select.performed += OnSelect;
+
+            playerControls.Combat.Selection.performed += OnSelection;
+            playerControls.Combat.Select.performed += OnSelect;
         }
     }
 

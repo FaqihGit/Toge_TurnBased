@@ -43,7 +43,7 @@ public class GameManager : MonoBehaviour
 
         EnterState(currentState);
 
-        combat.Init(playerControls);
+        combat.Init();
         cameraTransitionController.Init(currentState);
         player.Init(playerControls);
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
