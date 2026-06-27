@@ -1,9 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Fungus;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class CombatManager : MonoBehaviour
 {
+
+    [SerializeField] private Flowchart combatFlowchart;
+
     private const int MaxEnergy = 10;
 
     private readonly List<CombatUnit> playerUnits = new();
@@ -15,6 +20,24 @@ public class CombatManager : MonoBehaviour
     private CombatUnit currentActor;
     private bool isCombatActive;
     private bool awaitingAction;
+
+    // ---------------------------------------------------------------------
+    // Targeting sub-phase (visual selection of a target for the chosen action)
+    // ---------------------------------------------------------------------
+    private CombatPartyHandler playerPartyHandler;
+    private CombatPartyHandler enemyPartyHandler;
+
+    private CombatActionSO pendingAction;
+    private CombatPartyHandler targetingHandler;
+    private readonly List<CombatUnit> targetCandidates = new();
+    private readonly List<CombatUnit> selectedTargets = new();
+    private int targetCursorIndex;
+    private bool awaitingTarget;
+
+    // Edge-detection for stick input, matching the deadzone pattern used in
+    // CanvasManager/NavigableMenuDialog — stick must return to neutral before
+    // another move registers, so holding a direction doesn't spam the cursor.
+    private bool targetCursorAxisReleased = true;
 
     public CombatUnit CurrentActor => currentActor;
     public IReadOnlyList<CombatUnit> PlayerUnits => playerUnits;
@@ -32,14 +55,98 @@ public class CombatManager : MonoBehaviour
     /// Fired when the player escapes — no victory/defeat occurred.
     public event Action OnEscaped;
 
-    public void Init()
+    private PlayerInputAction playerControls;
+
+    void OnEnable()
     {
-        // Reserved for dependencies pushed in later, matching the rest of
-        // the codebase's Init() pattern. Nothing required yet.
+        SubscribeControls(true);
+    }
+
+    void OnDisable()
+    {
+        SubscribeControls(false);
+    }
+
+    public void Init(PlayerInputAction playerControls)
+    {
+        this.playerControls = playerControls;
+        SubscribeControls(true);
+    }
+
+    private void SubscribeControls(bool isSubscribe)
+    {
+        if (playerControls == null) return;
+
+        playerControls.Combat.Selection.performed -= OnSelection;
+        playerControls.Combat.Select.performed -= OnSelect;
+        playerControls.General.Escape.performed -= OnCancelTarget; // NOTE: requires a "Cancel" action in the Combat map
+
+        if (isSubscribe)
+        {
+            playerControls.Combat.Selection.performed += OnSelection;
+            playerControls.Combat.Select.performed += OnSelect;
+            playerControls.General.Escape.performed += OnCancelTarget;
+        }
+    }
+
+    private void OnSelection(InputAction.CallbackContext context)
+    {
+        if (!awaitingTarget || targetCandidates.Count == 0) return;
+
+        var selectionInput = context.ReadValue<Vector2>();
+
+        if (selectionInput.magnitude < 0.5f)
+        {
+            targetCursorAxisReleased = true;
+            return;
+        }
+
+        if (!targetCursorAxisReleased) return;
+
+        // Design intent: Up/Left -> next candidate, Down/Right -> previous,
+        // wrapping around at either end.
+        int direction = 0;
+        if (selectionInput.y > 0.5f || selectionInput.x < -0.5f) direction = 1;
+        else if (selectionInput.y < -0.5f || selectionInput.x > 0.5f) direction = -1;
+
+        if (direction == 0) return;
+
+        targetCursorAxisReleased = false;
+
+        int count = targetCandidates.Count;
+        targetCursorIndex = ((targetCursorIndex + direction) % count + count) % count;
+
+        targetingHandler.SetIndicator(GetPartySlotIndex(targetCandidates[targetCursorIndex]));
+    }
+
+    private void OnSelect(InputAction.CallbackContext context)
+    {
+        if (!awaitingTarget || targetCandidates.Count == 0) return;
+
+        var chosen = targetCandidates[targetCursorIndex];
+        int maxTargets = Mathf.Max(1, pendingAction.targetCount);
+
+        if (!selectedTargets.Contains(chosen))
+        {
+            selectedTargets.Add(chosen);
+            targetingHandler.ShowSelection(true, GetPartySlotIndex(chosen));
+        }
+
+        if (selectedTargets.Count >= maxTargets)
+            ConfirmTargetingResult(selectedTargets);
+    }
+
+    private void OnCancelTarget(InputAction.CallbackContext context)
+    {
+        if (!awaitingTarget) return;
+        CancelTargeting();
     }
 
     public void StartCombat(CombatPartyHandler playerParty, CombatPartyHandler enemyParty)
     {
+        playerPartyHandler = playerParty;
+        enemyPartyHandler = enemyParty;
+
         playerUnits.Clear();
         enemyUnits.Clear();
         allUnits.Clear();
@@ -87,6 +194,8 @@ public class CombatManager : MonoBehaviour
             destination.Add(new CombatUnit(partyHandler.partyUnitList[i], faction));
     }
 
+
+    #region Turn Handler
     // ---------------------------------------------------------------------
     // Turn order — Speed Bank (GDD 3)
     // ---------------------------------------------------------------------
@@ -154,18 +263,55 @@ public class CombatManager : MonoBehaviour
         }
 
         awaitingAction = true;
+        PromptAction();
+    }
+
+    private void PromptAction()
+    {
+        // Highlight whose turn it is on their own party handler while the
+        // action menu is open. Reused for every action this turn (GDD 1:
+        // turn = multi-action window), not just the first.
+        var actorHandler = currentActor.faction == UnitFactionEnum.Player ? playerPartyHandler : enemyPartyHandler;
+        int actorIdx = GetPartySlotIndex(currentActor);
+
+        HideAllIndicators();
+        actorHandler.SetIndicator(actorIdx);
+        actorHandler.ShowIndicator(true);
+
+        SetActionOption(currentActor, currentActor.source.combatActionList);
+        combatFlowchart.ExecuteBlock("TriggerAction");
     }
 
     private void EndTurn()
     {
         awaitingAction = false;
+        awaitingTarget = false;
+        HideAllIndicators();
         currentActor = null;
         AdvanceTurn();
     }
 
+    #endregion
+
+    #region External Calls
+
     // ---------------------------------------------------------------------
     // External API — called by PlayerInputRouter, an AI controller, etc.
     // ---------------------------------------------------------------------
+
+    public void SubmitAction()
+    {
+        if (!isCombatActive || !awaitingAction || awaitingTarget || currentActor == null) return;
+
+        int actionIdx = combatFlowchart.GetIntegerVariable("ActionIdx");
+        var actionList = currentActor.source.combatActionList;
+        if (actionIdx < 0 || actionIdx >= actionList.Count) return;
+
+        var action = actionList[actionIdx];
+        if (action.energyCost > currentActor.energy) return;
+
+        BeginTargeting(action);
+    }
 
     /// targets is ignored for party-wide actions. For single/limited-target
     /// actions, pass a subset of GetValidTargets(currentActor, action).
@@ -202,6 +348,8 @@ public class CombatManager : MonoBehaviour
 
         if (!HasAffordableAction(currentActor))
             EndTurn();
+        else
+            PromptAction(); // GDD 1: same actor can keep acting this turn while they can afford to.
 
         return true;
     }
@@ -226,6 +374,8 @@ public class CombatManager : MonoBehaviour
 
         isCombatActive = false;
         awaitingAction = false;
+        awaitingTarget = false;
+        HideAllIndicators();
         currentActor = null;
 
         OnEscaped?.Invoke();
@@ -245,6 +395,102 @@ public class CombatManager : MonoBehaviour
     }
 
     private bool IsPartyWide(CombatActionSO action) => action.targetCount <= 0 || action.targetCount >= 4;
+
+    #endregion
+
+    #region Targeting Visuals
+
+    // ---------------------------------------------------------------------
+    // Target selection — cursor + confirmation visuals
+    // ---------------------------------------------------------------------
+
+    private void BeginTargeting(CombatActionSO action)
+    {
+        pendingAction = action;
+        targetCandidates.Clear();
+        targetCandidates.AddRange(GetValidTargets(currentActor, action));
+
+        if (targetCandidates.Count == 0)
+        {
+            // No legal targets right now — bounce back to the action menu.
+            pendingAction = null;
+            PromptAction();
+            return;
+        }
+
+        if (IsPartyWide(action))
+        {
+            // GDD 6: "All" scope needs no manual target selection.
+            ConfirmTargetingResult(targetCandidates);
+            return;
+        }
+
+        targetingHandler = GetTargetHandler(currentActor, action);
+        selectedTargets.Clear();
+        targetCursorIndex = 0;
+        targetCursorAxisReleased = true;
+
+        HideAllIndicators();
+        targetingHandler.ShowSelectionAll(false);
+        targetingHandler.SetIndicator(GetPartySlotIndex(targetCandidates[targetCursorIndex]));
+        targetingHandler.ShowIndicator(true);
+
+        awaitingTarget = true;
+    }
+
+    private void ConfirmTargetingResult(List<CombatUnit> targets)
+    {
+        var action = pendingAction;
+        pendingAction = null;
+        awaitingTarget = false;
+
+        if (targetingHandler != null)
+            targetingHandler.ShowSelectionAll(false);
+        HideAllIndicators();
+
+        SubmitAction(action, targets);
+    }
+
+    private void CancelTargeting()
+    {
+        awaitingTarget = false;
+
+        if (targetingHandler != null)
+            targetingHandler.ShowSelectionAll(false);
+
+        pendingAction = null;
+        selectedTargets.Clear();
+        HideAllIndicators();
+
+        PromptAction();
+    }
+
+    private CombatPartyHandler GetTargetHandler(CombatUnit actor, CombatActionSO action)
+    {
+        bool actorIsPlayer = actor.faction == UnitFactionEnum.Player;
+        bool targetsAllies = action.target == CombatTargetEnum.Allies;
+
+        // Mirrors the pool selection in GetValidTargets.
+        bool targetsPlayerSide = targetsAllies ? actorIsPlayer : !actorIsPlayer;
+        return targetsPlayerSide ? playerPartyHandler : enemyPartyHandler;
+    }
+
+    private int GetPartySlotIndex(CombatUnit unit)
+    {
+        int idx = playerUnits.IndexOf(unit);
+        if (idx >= 0) return idx;
+        return enemyUnits.IndexOf(unit);
+    }
+
+    private void HideAllIndicators()
+    {
+        playerPartyHandler?.ShowIndicator(false);
+        enemyPartyHandler?.ShowIndicator(false);
+    }
+
+    #endregion
+
+    #region Action Handler
 
     // ---------------------------------------------------------------------
     // Action resolution
@@ -369,6 +615,10 @@ public class CombatManager : MonoBehaviour
         return false;
     }
 
+    #endregion
+
+    #region Win/Loss
+
     // ---------------------------------------------------------------------
     // Win / loss
     // ---------------------------------------------------------------------
@@ -390,6 +640,8 @@ public class CombatManager : MonoBehaviour
     {
         isCombatActive = false;
         awaitingAction = false;
+        awaitingTarget = false;
+        HideAllIndicators();
         currentActor = null;
 
         if (victory)
@@ -401,4 +653,48 @@ public class CombatManager : MonoBehaviour
 
         OnCombatEnded?.Invoke(victory);
     }
+    #endregion
+
+    #region Flowchart Handler
+    private static readonly string[] OptionVariables =
+    {
+        "OptionA",
+        "OptionB",
+        "OptionC",
+        "OptionD"
+    };
+
+    private static readonly string[] InteractableVariables =
+    {
+        "InteractableA",
+        "InteractableB",
+        "InteractableC",
+        "InteractableD"
+    };
+
+    public void SetActionOption(CombatUnit unit, List<CombatActionSO> actionList)
+    {
+        for (int i = 0; i < OptionVariables.Length; i++)
+        {
+            bool hasAction = i < actionList.Count;
+
+            combatFlowchart.SetStringVariable(
+                OptionVariables[i],
+                hasAction
+                    ? ActionStringBuilder(actionList[i].name, actionList[i].energyCost)
+                    : "Unavailable");
+
+            combatFlowchart.SetBooleanVariable(
+                InteractableVariables[i],
+                hasAction &&
+                unit.energy >= actionList[i].energyCost);
+        }
+    }
+
+    private static string ActionStringBuilder(string name, int energy)
+    {
+        return $"{name}\n E:{energy}";
+    }
+
+    #endregion
 }

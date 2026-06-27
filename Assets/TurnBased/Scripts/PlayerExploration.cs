@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -7,6 +8,7 @@ using UnityEngine.InputSystem;
 public class PlayerExploration : MonoBehaviour
 {
     public UnityAction<bool> OnPlayerInteracted;
+    public Action<CombatPartyHandler> OnPlayerTriggerCombat;
 
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
@@ -250,6 +252,7 @@ public class PlayerExploration : MonoBehaviour
                 if (isInteracting)
                 {
                     LogMessage($"OnPlayerInteracted {true}");
+                    currentInteractable.OnTriggerCombat = HandleOnCombatTriggered;
                     OnPlayerInteracted?.Invoke(true);
                 }
             }
@@ -262,6 +265,11 @@ public class PlayerExploration : MonoBehaviour
     {
         LogMessage($"OnPlayerInteracted {false}");
         OnPlayerInteracted?.Invoke(false);
+    }
+
+    private void HandleOnCombatTriggered(CombatPartyHandler enemy)
+    {
+        OnPlayerTriggerCombat?.Invoke(enemy);
     }
     #endregion
 

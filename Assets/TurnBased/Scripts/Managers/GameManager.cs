@@ -43,24 +43,25 @@ public class GameManager : MonoBehaviour
 
         EnterState(currentState);
 
-        combat.Init();
+        combat.Init(playerControls);
         cameraTransitionController.Init(currentState);
         player.Init(playerControls);
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
+        player.OnPlayerTriggerCombat = (enemyParty) => HandleOnCombatEntered(enemyParty);
 
         canvas.Init(playerControls);
     }
 
     private void OnEscapePerformed(InputAction.CallbackContext ctx)
     {
-        if (IsExploration)
-        {
-            ChangeState(GameState.Combat);
-        }
-        else if (IsCombat)
-        {
-            ChangeState(GameState.Exploration);
-        }
+        // if (IsExploration)
+        // {
+        //     ChangeState(GameState.Combat);
+        // }
+        // else if (IsCombat)
+        // {
+        //     ChangeState(GameState.Exploration);
+        // }
     }
 
     private void HandleOnPlayerInteracted(bool isInteracting)
@@ -79,9 +80,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void HandleOnCombatEntered()
+    private void HandleOnCombatEntered(CombatPartyHandler enemyParty)
     {
-
+        combat.StartCombat(player.playerParty, enemyParty);
     }
 
     #region State Handlers

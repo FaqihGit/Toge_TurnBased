@@ -6,6 +6,7 @@ using UnityEngine.Events;
 public class Interactables : MonoBehaviour
 {
     private UnityAction OnEndDialogAction;
+    public UnityAction<CombatPartyHandler> OnTriggerCombat;
 
     [Header("Data References")]
     [SerializeField] private UnitDataSO npcData;
@@ -14,6 +15,7 @@ public class Interactables : MonoBehaviour
     [Header("Component References")]
     [SerializeField] private Flowchart npcFlowchart;
     [SerializeField] private Character npcCharacter;
+    [SerializeField] private CombatPartyHandler combatParty;
     private bool isInteracting;
 
     [ContextMenu("Init")]
@@ -36,6 +38,12 @@ public class Interactables : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    [ContextMenu("Trigger Combat")]
+    public void TriggerCombat()
+    {
+        OnTriggerCombat?.Invoke(combatParty);
     }
 
     public void OnDialog(bool isStart)
