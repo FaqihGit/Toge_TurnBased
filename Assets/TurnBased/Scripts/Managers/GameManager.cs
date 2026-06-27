@@ -65,7 +65,7 @@ public class GameManager : MonoBehaviour
 
     private void HandleOnPlayerInteracted(bool isInteracting)
     {
-        LogMessage($"HandleOnPlayerInteracted {isInteracting}");
+        // LogMessage($"HandleOnPlayerInteracted {isInteracting}");
         if (isInteracting)
         {
             ChangeState(GameState.DialogueCutscene);
@@ -77,6 +77,11 @@ public class GameManager : MonoBehaviour
                 RevertToPreviousState();
             }
         }
+    }
+
+    private void HandleOnCombatEntered()
+    {
+
     }
 
     #region State Handlers
@@ -95,6 +100,7 @@ public class GameManager : MonoBehaviour
 
         EnterState(newState);
 
+        LogMessage($"ChangeState {previousState} => {currentState}");
         cameraTransitionController.HandleStateChanged(oldState, newState);
     }
 

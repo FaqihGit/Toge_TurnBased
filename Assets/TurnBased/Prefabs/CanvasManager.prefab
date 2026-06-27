@@ -2679,9 +2679,9 @@ MonoBehaviour:
   continueButton: {fileID: 5781591275746021346}
   dialogCanvas: {fileID: 4560691778480429116}
   nameText: {fileID: 166617387485235480}
-  nameTextGO: {fileID: 0}
+  nameTextGO: {fileID: 1855379221972137754}
   storyText: {fileID: 8908460998549941479}
-  storyTextGO: {fileID: 0}
+  storyTextGO: {fileID: 7767069431544676695}
   characterImage: {fileID: 6186729248673120473}
   fitTextWithImage: 1
   closeOtherDialogs: 0

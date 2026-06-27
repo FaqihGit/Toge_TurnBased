@@ -316,6 +316,6 @@ public class PlayerExploration : MonoBehaviour
 
     private void LogMessage(string msg)
     {
-        Debug.Log($"[PlayerExploration] {msg}");
+        // Debug.Log($"[PlayerExploration] {msg}");
     }
 }

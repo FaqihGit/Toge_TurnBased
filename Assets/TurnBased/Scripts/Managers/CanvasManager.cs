@@ -51,6 +51,8 @@ public class CanvasManager : MonoBehaviour
 
     private void OnSelection(InputAction.CallbackContext context)
     {
+        AdvanceDialog();
+
         selectionInput = context.ReadValue<Vector2>();
 
         if (MenuDialog.ActiveMenuDialog is NavigableMenuDialog activeMenu)
@@ -73,27 +75,33 @@ public class CanvasManager : MonoBehaviour
         }
 
         previousSelectionY = 0f;
-        AdvanceDialog();
     }
 
     private void OnSelect(InputAction.CallbackContext context)
     {
+        AdvanceDialog();
+
         if (MenuDialog.ActiveMenuDialog is NavigableMenuDialog activeMenu)
         {
             activeMenu.ConfirmSelection();
             return;
         }
-
-        AdvanceDialog();
     }
 
     [ContextMenu("Advance Dialog")]
     public void AdvanceDialog()
     {
-        if (
-            !SayDialog.ActiveSayDialog
-            || MenuDialog.ActiveMenuDialog
-            ) return;
+        bool hasSay = SayDialog.ActiveSayDialog;
+        bool hasMenu = MenuDialog.ActiveMenuDialog != null &&
+                       MenuDialog.ActiveMenuDialog.IsActive();
+        // LogMessage($"AdvanceDialog — hasSay={hasSay}, hasMenu={hasMenu}");
+
+        if (!hasSay || hasMenu) return;
         dialogInput.SetNextLineFlag();
+    }
+
+    private void LogMessage(string msg)
+    {
+        Debug.Log($"[CanvasManager] {msg}");
     }
 }

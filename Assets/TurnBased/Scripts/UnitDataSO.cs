@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Unit_Fulan", menuName = "Units/UnitData")]
@@ -7,17 +8,19 @@ public class UnitDataSO : ScriptableObject
     public new string name;
 
     public UnitStats stats;
+    public List<CombatActionSO> combatActionList;
 }
 
 [Serializable]
 public class UnitStats
 {
-    public float maxHealth;
-    public float currentHealth;
+    public float maxHealth = 100;
+    public float currentHealth = 100;
 
-    public float combatAttack;
-    public float combatDefense;
-    public float combatSpeedInit;
-    public float combatSpeedBank;
-    public int combatEnergy;
+    public float combatAttack = 1;
+    public float combatDefense = 0;
+    public float combatSpeed = 10;
 }
+
+[Serializable]
+public enum UnitFactionEnum { Player, Enemies }

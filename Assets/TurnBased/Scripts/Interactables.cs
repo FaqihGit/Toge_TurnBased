@@ -51,6 +51,6 @@ public class Interactables : MonoBehaviour
 
     protected void LogMessage(string msg)
     {
-        Debug.Log($"[Interactables] {name} {msg}");
+        // Debug.Log($"[Interactables] {name} {msg}");
     }
 }
