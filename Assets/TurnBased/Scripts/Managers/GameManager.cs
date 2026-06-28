@@ -43,13 +43,13 @@ public class GameManager : MonoBehaviour
 
         EnterState(currentState);
 
-        combat.Init(playerControls);
+        combat.Init(playerControls, canvas.combatCanvas);
         cameraTransitionController.Init(currentState);
         player.Init(playerControls);
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
         player.OnPlayerTriggerCombat = (enemyParty) => HandleOnCombatEntered(enemyParty);
 
-        canvas.Init(playerControls);
+        canvas.Init(playerControls, Camera.main);
     }
 
     private void OnEscapePerformed(InputAction.CallbackContext ctx)
@@ -82,6 +82,7 @@ public class GameManager : MonoBehaviour
 
     private void HandleOnCombatEntered(CombatPartyHandler enemyParty)
     {
+        ChangeState(GameState.Combat);
         combat.StartCombat(player.playerParty, enemyParty);
     }
 

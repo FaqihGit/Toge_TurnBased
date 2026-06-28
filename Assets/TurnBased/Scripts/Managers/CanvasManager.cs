@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 
 public class CanvasManager : MonoBehaviour
 {
+    [SerializeField] private CombatCanvasManager _combatCanvas; public CombatCanvasManager combatCanvas;
     [SerializeField] private NavigableMenuDialog menuDialog;
     [SerializeField] private SayDialog sayDialog;
     [SerializeField] private DialogInput dialogInput;
@@ -23,10 +24,12 @@ public class CanvasManager : MonoBehaviour
         SubscribeControls(false);
     }
 
-    public void Init(PlayerInputAction playerControls)
+    public void Init(PlayerInputAction playerControls, Camera mainCam)
     {
         this.playerControls = playerControls;
         SubscribeControls(true);
+
+        _combatCanvas.Init(mainCam);
     }
 
     private void SubscribeControls(bool isSubscribe)

@@ -56,6 +56,7 @@ public class CombatManager : MonoBehaviour
     public event Action OnEscaped;
 
     private PlayerInputAction playerControls;
+    private CombatCanvasManager combatCanvas;
 
     void OnEnable()
     {
@@ -67,9 +68,10 @@ public class CombatManager : MonoBehaviour
         SubscribeControls(false);
     }
 
-    public void Init(PlayerInputAction playerControls)
+    public void Init(PlayerInputAction playerControls, CombatCanvasManager combatCanvas)
     {
         this.playerControls = playerControls;
+        this.combatCanvas = combatCanvas;
         SubscribeControls(true);
     }
 
@@ -180,6 +182,9 @@ public class CombatManager : MonoBehaviour
         foreach (var u in allUnits)
             u.speedBank = u.speed;
 
+        combatCanvas.BindParty(playerUnits, playerPartyHandler, MaxEnergy);
+        combatCanvas.BindParty(enemyUnits, enemyPartyHandler, MaxEnergy);
+
         isCombatActive = true;
         AdvanceTurn();
     }
@@ -250,6 +255,9 @@ public class CombatManager : MonoBehaviour
 
         if (!wasStunned)
             actor.energy = Mathf.Min(MaxEnergy, actor.energy + 1);
+
+
+        combatCanvas.RefreshUnit(actor, MaxEnergy);
 
         TickStatuses(actor);
 
@@ -342,6 +350,7 @@ public class CombatManager : MonoBehaviour
         }
 
         currentActor.energy -= action.energyCost;
+        combatCanvas.RefreshUnit(currentActor, MaxEnergy); // NEW
         ResolveAction(currentActor, action, resolvedTargets);
 
         if (CheckEncounterEnd()) return true;
@@ -530,6 +539,8 @@ public class CombatManager : MonoBehaviour
             // GDD 4.1: hit by attack -> +1 Energy, always applies (even through Stun).
             if (dealtDamage)
                 target.energy = Mathf.Min(MaxEnergy, target.energy + 1);
+
+            combatCanvas.RefreshUnit(target, MaxEnergy);
         }
     }
 
@@ -642,6 +653,7 @@ public class CombatManager : MonoBehaviour
         awaitingAction = false;
         awaitingTarget = false;
         HideAllIndicators();
+        combatCanvas.ClearAll();
         currentActor = null;
 
         if (victory)

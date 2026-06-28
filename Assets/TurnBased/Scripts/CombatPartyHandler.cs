@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using NUnit.Framework;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class CombatPartyHandler : MonoBehaviour
@@ -12,9 +10,7 @@ public class CombatPartyHandler : MonoBehaviour
     [SerializeField] private GameObject _targetIndicator; public GameObject targetIndicator => _targetIndicator;
 
     [SerializeField] private GameObject _worldMember;
-    [SerializeField] private List<GameObject> _partyObjectList;
-    [Tooltip("Visual cached indicator of which has been chosen in this turn")]
-    [SerializeField] private List<GameObject> _partySelectedIndicatorList; public List<GameObject> partySelectedIndicatorList => _partySelectedIndicatorList;
+    [SerializeField] private List<CombatUnitVisual> _partyVisualList;
     public List<UnitDataSO> partyUnitList;
 
     void Awake()
@@ -37,12 +33,12 @@ public class CombatPartyHandler : MonoBehaviour
         if (isShow)
         {
             // show all party member
-            foreach (var member in _partyObjectList)
+            foreach (var visual in _partyVisualList)
             {
-                member.SetActive(true);
-                var memberPos = member.transform.position;
+                visual.gameObject.SetActive(true);
+                var memberPos = visual.gameObject.transform.position;
                 memberPos.x = playerXPos.Value + 11; // Hardcoded value as visually good offset position for combat
-                member.transform.position = memberPos;
+                visual.gameObject.transform.position = memberPos;
             }
             // Hide main member
             _worldMember.SetActive(false);
@@ -50,7 +46,7 @@ public class CombatPartyHandler : MonoBehaviour
         else
         {
             // hide all party member
-            foreach (var member in _partyObjectList) member.SetActive(false);
+            foreach (var visual in _partyVisualList) visual.gameObject.SetActive(false);
             // show main member
             _worldMember.SetActive(true);
         }
@@ -63,25 +59,36 @@ public class CombatPartyHandler : MonoBehaviour
 
     public void SetIndicator(int memberIdx)
     {
-        if (memberIdx < 0 || memberIdx >= _partyObjectList.Count) return;
+        if (memberIdx < 0 || memberIdx >= _partyVisualList.Count) return;
 
         var targetPos = _targetIndicator.transform.position;
-        targetPos.z = _partyObjectList[memberIdx].transform.position.z;
+        targetPos.z = _partyVisualList[memberIdx].gameObject.transform.position.z;
         _targetIndicator.transform.position = targetPos;
     }
 
     public void ShowSelectionAll(bool isShow)
     {
-        foreach (var member in _partySelectedIndicatorList)
+        foreach (var visual in _partyVisualList)
         {
-            member.SetActive(isShow);
+            visual.selectionObject.SetActive(isShow);
         }
     }
 
     public void ShowSelection(bool isShow, int memberIdx)
     {
-        if (memberIdx < 0 || memberIdx >= _partySelectedIndicatorList.Count) return;
+        if (memberIdx < 0 || memberIdx >= _partyVisualList.Count) return;
 
-        _partySelectedIndicatorList[memberIdx].SetActive(isShow);
+        _partyVisualList[memberIdx].selectionObject.SetActive(isShow);
+    }
+
+    public Transform GetCanvasTarget(int memberIdx)
+    {
+        if (memberIdx < 0 || memberIdx >= _partyVisualList.Count)
+        {
+            Debug.LogError($"CombatPartyHandler: memberIdx {memberIdx} out of range for canvas target lookup");
+            return null;
+        }
+
+        return _partyVisualList[memberIdx].canvasTarget;
     }
 }

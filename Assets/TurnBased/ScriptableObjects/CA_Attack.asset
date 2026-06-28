@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CA_Attack
   m_EditorClassIdentifier: Assembly-CSharp::CombatActionSO
   name: Simple Attack
-  energyCost: 0
+  energyCost: 1
   target: 1
   targetCount: 1
   damageMult: 1

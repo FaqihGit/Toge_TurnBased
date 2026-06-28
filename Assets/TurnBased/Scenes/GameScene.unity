@@ -726,6 +726,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 122012951945373867, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 390920334606288801, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
@@ -824,6 +828,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1615053202596465299, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
       propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1831372795928659376, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
+      propertyPath: m_ActiveFontFeatures.Array.size
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1870353118727734467, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
@@ -978,9 +986,17 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6095713985592742014, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
+      propertyPath: m_ActiveFontFeatures.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7175346348165068907, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
       propertyPath: m_Name
       value: CanvasManager
+      objectReference: {fileID: 0}
+    - target: {fileID: 7484101090242072738, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9146859128684746304, guid: 5521b14aec4ee104d89989405db69ee2, type: 3}
       propertyPath: m_AnchorMax.x
