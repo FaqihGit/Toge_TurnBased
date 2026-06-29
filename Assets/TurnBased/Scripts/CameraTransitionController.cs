@@ -4,7 +4,7 @@ using UnityEngine;
 public class CameraTransitionController : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Camera mainCamera;
+    [SerializeField] private Camera _mainCamera; public Camera mainCamera => _mainCamera;
     [SerializeField] private Transform explorationReference;
     [SerializeField] private Transform combatReference;
 
@@ -36,7 +36,7 @@ public class CameraTransitionController : MonoBehaviour
 
     private void SnapTo(Transform reference)
     {
-        mainCamera.transform.SetPositionAndRotation(reference.position, reference.rotation);
+        _mainCamera.transform.SetPositionAndRotation(reference.position, reference.rotation);
     }
 
     private void BeginBlend(Transform target)
@@ -47,7 +47,7 @@ public class CameraTransitionController : MonoBehaviour
 
     private IEnumerator BlendTo(Transform target)
     {
-        Transform cam = mainCamera.transform;
+        Transform cam = _mainCamera.transform;
         Vector3 startPos = cam.position;
         Quaternion startRot = cam.rotation;
 

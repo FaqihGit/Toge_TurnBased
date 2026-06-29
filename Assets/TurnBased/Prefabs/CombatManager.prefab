@@ -132,9 +132,9 @@ MonoBehaviour:
     width: 1114
     height: 859
   selectedBlocks:
-  - {fileID: 7460317621818153474}
+  - {fileID: 7997952620044846775}
   selectedCommands:
-  - {fileID: 7198909207582113133}
+  - {fileID: 5638671186298874423}
   variables:
   - {fileID: 6012670640609233176}
   - {fileID: 7062516293825146487}
@@ -1361,7 +1361,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 7631350252554856469}
         m_TargetAssemblyTypeName: CombatManager, Assembly-CSharp
-        m_MethodName: SubmitAction
+        m_MethodName: SubmitFlowchartAction
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

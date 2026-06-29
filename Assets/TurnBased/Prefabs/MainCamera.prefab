@@ -48,7 +48,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63045ad463671e94c90c8047709f61b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraTransitionController
-  mainCamera: {fileID: 918438469521886905}
+  _mainCamera: {fileID: 918438469521886905}
   explorationReference: {fileID: 8461704898817001633}
   combatReference: {fileID: 6256189246526734889}
   blendDuration: 2

@@ -10,6 +10,7 @@ public class CombatPartyHandler : MonoBehaviour
     [SerializeField] private GameObject _targetIndicator; public GameObject targetIndicator => _targetIndicator;
 
     [SerializeField] private GameObject _worldMember;
+    public Vector3 WorldMemberPosition => _worldMember.transform.position;
     [SerializeField] private List<CombatUnitVisual> _partyVisualList;
     public List<UnitDataSO> partyUnitList;
 
@@ -22,6 +23,7 @@ public class CombatPartyHandler : MonoBehaviour
 
     public void ShowParty(bool isShow, float? playerXPos = null)
     {
+        LogMessage($"ShowParty {isShow}");
         if (!isDefaultHideParty) return;
 
         if (isShow && !playerXPos.HasValue)
@@ -59,11 +61,13 @@ public class CombatPartyHandler : MonoBehaviour
 
     public void SetIndicator(int memberIdx)
     {
+        LogMessage($"SetIndicator {memberIdx}");
         if (memberIdx < 0 || memberIdx >= _partyVisualList.Count) return;
 
-        var targetPos = _targetIndicator.transform.position;
-        targetPos.z = _partyVisualList[memberIdx].gameObject.transform.position.z;
+        var targetPos = _partyVisualList[memberIdx].canvasTarget.position;
+        targetPos.y = _targetIndicator.transform.position.y;
         _targetIndicator.transform.position = targetPos;
+        LogMessage($"SetIndicator {targetPos}");
     }
 
     public void ShowSelectionAll(bool isShow)
@@ -90,5 +94,10 @@ public class CombatPartyHandler : MonoBehaviour
         }
 
         return _partyVisualList[memberIdx].canvasTarget;
+    }
+
+    private void LogMessage(string msg)
+    {
+        // Debug.Log($"[CombatPartyHandler] {name} {msg}");
     }
 }

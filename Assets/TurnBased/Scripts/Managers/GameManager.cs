@@ -37,6 +37,7 @@ public class GameManager : MonoBehaviour
 
     private void Init()
     {
+
         playerControls = new();
         playerControls.General.Enable();
         playerControls.General.Escape.performed += OnEscapePerformed;
@@ -49,7 +50,7 @@ public class GameManager : MonoBehaviour
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
         player.OnPlayerTriggerCombat = (enemyParty) => HandleOnCombatEntered(enemyParty);
 
-        canvas.Init(playerControls, Camera.main);
+        canvas.Init(playerControls, cameraTransitionController.mainCamera);
     }
 
     private void OnEscapePerformed(InputAction.CallbackContext ctx)

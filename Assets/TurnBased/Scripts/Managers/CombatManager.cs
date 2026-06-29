@@ -16,6 +16,8 @@ public class CombatManager : MonoBehaviour
     private readonly List<CombatUnit> allUnits = new();
     private readonly List<CombatUnitSnapshot> preCombatSnapshots = new();
 
+    private readonly CombatResolver combatResolver = new(MaxEnergy);
+
     private float turnThreshold;
     private CombatUnit currentActor;
     private bool isCombatActive;
@@ -38,6 +40,7 @@ public class CombatManager : MonoBehaviour
     // CanvasManager/NavigableMenuDialog — stick must return to neutral before
     // another move registers, so holding a direction doesn't spam the cursor.
     private bool targetCursorAxisReleased = true;
+    private int targetingOpenedFrame = -1;
 
     public CombatUnit CurrentActor => currentActor;
     public IReadOnlyList<CombatUnit> PlayerUnits => playerUnits;
@@ -80,74 +83,25 @@ public class CombatManager : MonoBehaviour
         if (playerControls == null) return;
 
         playerControls.Combat.Selection.performed -= OnSelection;
+        playerControls.Combat.Selection.canceled -= OnSelectionReleased;
         playerControls.Combat.Select.performed -= OnSelect;
-        playerControls.General.Escape.performed -= OnCancelTarget; // NOTE: requires a "Cancel" action in the Combat map
+        playerControls.General.Escape.performed -= OnCancelTarget;
 
         if (isSubscribe)
         {
             playerControls.Combat.Selection.performed += OnSelection;
+            playerControls.Combat.Selection.canceled += OnSelectionReleased;
             playerControls.Combat.Select.performed += OnSelect;
             playerControls.General.Escape.performed += OnCancelTarget;
         }
-    }
-
-    private void OnSelection(InputAction.CallbackContext context)
-    {
-        if (!awaitingTarget || targetCandidates.Count == 0) return;
-
-        var selectionInput = context.ReadValue<Vector2>();
-
-        if (selectionInput.magnitude < 0.5f)
-        {
-            targetCursorAxisReleased = true;
-            return;
-        }
-
-        if (!targetCursorAxisReleased) return;
-
-        // Design intent: Up/Left -> next candidate, Down/Right -> previous,
-        // wrapping around at either end.
-        int direction = 0;
-        if (selectionInput.y > 0.5f || selectionInput.x < -0.5f) direction = 1;
-        else if (selectionInput.y < -0.5f || selectionInput.x > 0.5f) direction = -1;
-
-        if (direction == 0) return;
-
-        targetCursorAxisReleased = false;
-
-        int count = targetCandidates.Count;
-        targetCursorIndex = ((targetCursorIndex + direction) % count + count) % count;
-
-        targetingHandler.SetIndicator(GetPartySlotIndex(targetCandidates[targetCursorIndex]));
-    }
-
-    private void OnSelect(InputAction.CallbackContext context)
-    {
-        if (!awaitingTarget || targetCandidates.Count == 0) return;
-
-        var chosen = targetCandidates[targetCursorIndex];
-        int maxTargets = Mathf.Max(1, pendingAction.targetCount);
-
-        if (!selectedTargets.Contains(chosen))
-        {
-            selectedTargets.Add(chosen);
-            targetingHandler.ShowSelection(true, GetPartySlotIndex(chosen));
-        }
-
-        if (selectedTargets.Count >= maxTargets)
-            ConfirmTargetingResult(selectedTargets);
-    }
-
-    private void OnCancelTarget(InputAction.CallbackContext context)
-    {
-        if (!awaitingTarget) return;
-        CancelTargeting();
     }
 
     public void StartCombat(CombatPartyHandler playerParty, CombatPartyHandler enemyParty)
     {
         playerPartyHandler = playerParty;
         enemyPartyHandler = enemyParty;
+
+        enemyPartyHandler.ShowParty(true, playerPartyHandler.WorldMemberPosition.x);
 
         playerUnits.Clear();
         enemyUnits.Clear();
@@ -259,7 +213,7 @@ public class CombatManager : MonoBehaviour
 
         combatCanvas.RefreshUnit(actor, MaxEnergy);
 
-        TickStatuses(actor);
+        combatResolver.TickStatuses(actor);
 
         OnTurnStarted?.Invoke(actor);
 
@@ -307,20 +261,6 @@ public class CombatManager : MonoBehaviour
     // External API — called by PlayerInputRouter, an AI controller, etc.
     // ---------------------------------------------------------------------
 
-    public void SubmitAction()
-    {
-        if (!isCombatActive || !awaitingAction || awaitingTarget || currentActor == null) return;
-
-        int actionIdx = combatFlowchart.GetIntegerVariable("ActionIdx");
-        var actionList = currentActor.source.combatActionList;
-        if (actionIdx < 0 || actionIdx >= actionList.Count) return;
-
-        var action = actionList[actionIdx];
-        if (action.energyCost > currentActor.energy) return;
-
-        BeginTargeting(action);
-    }
-
     /// targets is ignored for party-wide actions. For single/limited-target
     /// actions, pass a subset of GetValidTargets(currentActor, action).
     public bool SubmitAction(CombatActionSO action, List<CombatUnit> targets)
@@ -351,11 +291,16 @@ public class CombatManager : MonoBehaviour
 
         currentActor.energy -= action.energyCost;
         combatCanvas.RefreshUnit(currentActor, MaxEnergy); // NEW
-        ResolveAction(currentActor, action, resolvedTargets);
+        combatResolver.ResolveAction(currentActor, action, resolvedTargets);
+
+        // CombatResolver has no UI reference, so the caller (here) refreshes
+        // every target it just resolved against.
+        foreach (var target in resolvedTargets)
+            combatCanvas.RefreshUnit(target, MaxEnergy);
 
         if (CheckEncounterEnd()) return true;
 
-        if (!HasAffordableAction(currentActor))
+        if (!combatResolver.HasAffordableAction(currentActor))
             EndTurn();
         else
             PromptAction(); // GDD 1: same actor can keep acting this turn while they can afford to.
@@ -385,6 +330,7 @@ public class CombatManager : MonoBehaviour
         awaitingAction = false;
         awaitingTarget = false;
         HideAllIndicators();
+        enemyPartyHandler.ShowParty(false);
         currentActor = null;
 
         OnEscaped?.Invoke();
@@ -445,6 +391,7 @@ public class CombatManager : MonoBehaviour
         targetingHandler.ShowIndicator(true);
 
         awaitingTarget = true;
+        targetingOpenedFrame = Time.frameCount;
     }
 
     private void ConfirmTargetingResult(List<CombatUnit> targets)
@@ -499,131 +446,57 @@ public class CombatManager : MonoBehaviour
 
     #endregion
 
-    #region Action Handler
 
-    // ---------------------------------------------------------------------
-    // Action resolution
-    // ---------------------------------------------------------------------
+    #region Selection Handler
 
-    private void ResolveAction(CombatUnit actor, CombatActionSO action, List<CombatUnit> targets)
+    private void OnSelectionReleased(InputAction.CallbackContext context)
     {
-        foreach (var target in targets)
-        {
-            if (target.IsDead) continue;
-
-            bool dealtDamage = false;
-
-            if (action.damageMult != 0f)
-            {
-                float rawAmount = actor.attack * action.damageMult;
-
-                if (rawAmount > 0f)
-                {
-                    float mitigated = action.isIgnoreDef ? rawAmount : Mathf.Max(0f, rawAmount - target.defense);
-                    target.currentHealth = Mathf.Clamp(target.currentHealth - mitigated, 0f, target.maxHealth);
-                    dealtDamage = true;
-                }
-                else
-                {
-                    // Negative damageMult = heal; defense/isIgnoreDef don't apply.
-                    target.currentHealth = Mathf.Clamp(target.currentHealth - rawAmount, 0f, target.maxHealth);
-                }
-            }
-
-            if (action.isBuff)
-                ApplyStatModBuff(target, action);
-
-            if (action.appliesStun)
-                ApplyStun(target, action.buffTurn);
-
-            // GDD 4.1: hit by attack -> +1 Energy, always applies (even through Stun).
-            if (dealtDamage)
-                target.energy = Mathf.Min(MaxEnergy, target.energy + 1);
-
-            combatCanvas.RefreshUnit(target, MaxEnergy);
-        }
+        targetCursorAxisReleased = true;
     }
 
-    private void ApplyStatModBuff(CombatUnit target, CombatActionSO action)
+    private void OnSelection(InputAction.CallbackContext context)
     {
-        // GDD 8: no stacking — a reapplication refreshes rather than stacks.
-        for (int i = target.activeStatuses.Count - 1; i >= 0; i--)
+        if (!awaitingTarget || targetCandidates.Count == 0) return;
+        if (!targetCursorAxisReleased) return;
+
+        var selectionInput = context.ReadValue<Vector2>();
+
+        int direction = 0;
+        if (selectionInput.y > 0.5f || selectionInput.x < -0.5f) direction = 1;
+        else if (selectionInput.y < -0.5f || selectionInput.x > 0.5f) direction = -1;
+
+        if (direction == 0) return;
+
+        targetCursorAxisReleased = false;
+
+        int count = targetCandidates.Count;
+        targetCursorIndex = ((targetCursorIndex + direction) % count + count) % count;
+
+        targetingHandler.SetIndicator(GetPartySlotIndex(targetCandidates[targetCursorIndex]));
+    }
+
+    private void OnSelect(InputAction.CallbackContext context)
+    {
+        if (!awaitingTarget || targetCandidates.Count == 0) return;
+        if (Time.frameCount == targetingOpenedFrame) return; // ignore the confirm that just opened targeting
+
+        var chosen = targetCandidates[targetCursorIndex];
+        int maxTargets = Mathf.Max(1, pendingAction.targetCount);
+
+        if (!selectedTargets.Contains(chosen))
         {
-            if (target.activeStatuses[i].sourceAction == action)
-            {
-                RevertStatus(target, target.activeStatuses[i]);
-                target.activeStatuses.RemoveAt(i);
-            }
+            selectedTargets.Add(chosen);
+            targetingHandler.ShowSelection(true, GetPartySlotIndex(chosen));
         }
 
-        // GDD 8: Speed buffs/debuffs are % based; Attack/Defense flat for now.
-        float speedDelta = target.speed * action.buffValue.combatSpeed;
-
-        var status = new ActiveStatus
-        {
-            type = StatusType.StatMod,
-            sourceAction = action,
-            remainingTurns = action.buffTurn,
-            attackDelta = action.buffValue.combatAttack,
-            defenseDelta = action.buffValue.combatDefense,
-            speedDelta = speedDelta
-        };
-
-        target.attack += status.attackDelta;
-        target.defense += status.defenseDelta;
-        if (status.speedDelta != 0f)
-            target.ChangeSpeed(target.speed + status.speedDelta);
-
-        target.activeStatuses.Add(status);
+        if (selectedTargets.Count >= maxTargets)
+            ConfirmTargetingResult(selectedTargets);
     }
 
-    private void ApplyStun(CombatUnit target, int duration)
+    private void OnCancelTarget(InputAction.CallbackContext context)
     {
-        for (int i = target.activeStatuses.Count - 1; i >= 0; i--)
-        {
-            if (target.activeStatuses[i].type == StatusType.Stun)
-                target.activeStatuses.RemoveAt(i); // refresh, not stack
-        }
-
-        target.activeStatuses.Add(new ActiveStatus
-        {
-            type = StatusType.Stun,
-            remainingTurns = duration
-        });
-    }
-
-    private void TickStatuses(CombatUnit unit)
-    {
-        // GDD 8: duration ticks at the start of the unit's own turn.
-        for (int i = unit.activeStatuses.Count - 1; i >= 0; i--)
-        {
-            var status = unit.activeStatuses[i];
-            status.remainingTurns--;
-
-            if (status.remainingTurns <= 0)
-            {
-                RevertStatus(unit, status);
-                unit.activeStatuses.RemoveAt(i);
-            }
-        }
-    }
-
-    private void RevertStatus(CombatUnit unit, ActiveStatus status)
-    {
-        if (status.type != StatusType.StatMod) return;
-
-        unit.attack -= status.attackDelta;
-        unit.defense -= status.defenseDelta;
-        if (status.speedDelta != 0f)
-            unit.ChangeSpeed(unit.speed - status.speedDelta);
-    }
-
-    private bool HasAffordableAction(CombatUnit unit)
-    {
-        foreach (var action in unit.source.combatActionList)
-            if (action.energyCost <= unit.energy)
-                return true;
-        return false;
+        if (!awaitingTarget) return;
+        CancelTargeting();
     }
 
     #endregion
@@ -653,6 +526,7 @@ public class CombatManager : MonoBehaviour
         awaitingAction = false;
         awaitingTarget = false;
         HideAllIndicators();
+        enemyPartyHandler.ShowParty(false);
         combatCanvas.ClearAll();
         currentActor = null;
 
@@ -668,6 +542,23 @@ public class CombatManager : MonoBehaviour
     #endregion
 
     #region Flowchart Handler
+    public void SubmitFlowchartAction()
+    {
+        LogMessage($"SubmitFlowchartAction isCombatActive {isCombatActive} awaitingAction {awaitingAction} awaitingTarget {awaitingTarget} currentActor {currentActor}");
+        if (!isCombatActive || !awaitingAction || awaitingTarget || currentActor == null) return;
+
+        int actionIdx = combatFlowchart.GetIntegerVariable("ActionIdx");
+        var actionList = currentActor.source.combatActionList;
+        LogMessage($"SubmitFlowchartAction actionIdx {actionIdx}");
+        if (actionIdx < 0 || actionIdx >= actionList.Count) return;
+
+        var action = actionList[actionIdx];
+        LogMessage($"SubmitFlowchartAction action.energyCost {action.energyCost} currentActor.energy {currentActor.energy}");
+        if (action.energyCost > currentActor.energy) return;
+
+        BeginTargeting(action);
+    }
+
     private static readonly string[] OptionVariables =
     {
         "OptionA",
@@ -709,4 +600,9 @@ public class CombatManager : MonoBehaviour
     }
 
     #endregion
+
+    private void LogMessage(string msg)
+    {
+        Debug.Log($"[CombatManager] {msg}");
+    }
 }

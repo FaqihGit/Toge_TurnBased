@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class CanvasManager : MonoBehaviour
 {
-    [SerializeField] private CombatCanvasManager _combatCanvas; public CombatCanvasManager combatCanvas;
+    [SerializeField] private CombatCanvasManager _combatCanvas; public CombatCanvasManager combatCanvas => _combatCanvas;
     [SerializeField] private NavigableMenuDialog menuDialog;
     [SerializeField] private SayDialog sayDialog;
     [SerializeField] private DialogInput dialogInput;

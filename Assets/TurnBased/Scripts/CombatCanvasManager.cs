@@ -10,10 +10,9 @@ public class CombatCanvasManager : MonoBehaviour
     private Camera combatCamera;
     private readonly Dictionary<CombatUnit, CombatUnitUI> activeUI = new();
 
-    /// Pushed in by GameManager — whichever camera renders the combat scene
-    /// (likely the same one CameraTransitionController blends into).
     public void Init(Camera combatCamera)
     {
+        Debug.Log($"Init {combatCamera}");
         this.combatCamera = combatCamera;
     }
 
