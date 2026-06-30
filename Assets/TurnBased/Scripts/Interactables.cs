@@ -43,6 +43,7 @@ public class Interactables : MonoBehaviour
     [ContextMenu("Trigger Combat")]
     public void TriggerCombat()
     {
+        OnDialog(false);
         OnTriggerCombat?.Invoke(combatParty);
     }
 

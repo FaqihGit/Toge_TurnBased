@@ -274,9 +274,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec422cd568a9c4a31ad7c36d0572b9da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fungus::Fungus.Say
-  itemId: 9
+  itemId: 11
   indentLevel: 0
-  storyText: Hello
+  storyText: Berantem?
   description: 
   character: {fileID: 2115209999}
   portrait: {fileID: 0}
@@ -1291,7 +1291,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
     - target: {fileID: 1798305131897936611, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
       propertyPath: commandList.Array.size
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 1798305131897936611, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
       propertyPath: 'commandList.Array.data[1]'
@@ -1301,6 +1301,18 @@ PrefabInstance:
       propertyPath: 'commandList.Array.data[2]'
       value: 
       objectReference: {fileID: 605616974}
+    - target: {fileID: 1798305131897936611, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+      propertyPath: 'commandList.Array.data[3]'
+      value: 
+      objectReference: {fileID: 3860692516438139380}
+    - target: {fileID: 5431367376924219456, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+      propertyPath: text
+      value: Ayo mana
+      objectReference: {fileID: 0}
+    - target: {fileID: 5431367376924219456, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+      propertyPath: targetBlock
+      value: 
+      objectReference: {fileID: 3860692516438139378}
     - target: {fileID: 5431367376924219456, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
       propertyPath: setMenuDialog
       value: 
@@ -1352,7 +1364,7 @@ PrefabInstance:
     - target: {fileID: 7546855783286970587, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
       propertyPath: 'selectedCommands.Array.data[0]'
       value: 
-      objectReference: {fileID: 605616979}
+      objectReference: {fileID: 3860692516438139380}
     - target: {fileID: 8143532613015471652, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
       propertyPath: m_Name
       value: Npc
@@ -1364,7 +1376,57 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7908406276732331627, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 605616979}
+    - targetCorrespondingSourceObject: {fileID: 7908406276732331627, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3860692516438139380}
   m_SourcePrefab: {fileID: 100100000, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+--- !u!114 &3860692516438139378 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3738285562273889310, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+  m_PrefabInstance: {fileID: 3860692516438139377}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605616971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d3d73aef2cfc4f51abf34ac00241f60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fungus::Fungus.Block
+--- !u!114 &3860692516438139379 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6283462567513806996, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
+  m_PrefabInstance: {fileID: 3860692516438139377}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605616971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d3d73aef2cfc4f51abf34ac00241f60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fungus::Fungus.Block
+--- !u!114 &3860692516438139380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605616971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841589fc622bc494aa5405f416fa1301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fungus::Fungus.Menu
+  itemId: 12
+  indentLevel: 0
+  text: Ngga dulu deh
+  description: 
+  targetBlock: {fileID: 3860692516438139379}
+  hideIfVisited: 0
+  interactable:
+    booleanRef: {fileID: 0}
+    booleanVal: 1
+  setMenuDialog: {fileID: 0}
+  hideThisOption:
+    booleanRef: {fileID: 0}
+    booleanVal: 0
 --- !u!1001 &5263680554822393492
 PrefabInstance:
   m_ObjectHideFlags: 0

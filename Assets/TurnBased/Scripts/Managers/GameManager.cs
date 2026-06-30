@@ -40,11 +40,13 @@ public class GameManager : MonoBehaviour
 
         playerControls = new();
         playerControls.General.Enable();
-        playerControls.General.Escape.performed += OnEscapePerformed;
+        playerControls.General.Escape.performed += OnInputEscape;
 
         EnterState(currentState);
 
         combat.Init(playerControls, canvas.combatCanvas);
+        combat.OnCombatEnded += HandleOnCombatEnd;
+        combat.OnEscaped += HandleOnCombatEscaped;
         cameraTransitionController.Init(currentState);
         player.Init(playerControls);
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
@@ -53,16 +55,21 @@ public class GameManager : MonoBehaviour
         canvas.Init(playerControls, cameraTransitionController.mainCamera);
     }
 
-    private void OnEscapePerformed(InputAction.CallbackContext ctx)
+    private void OnInputEscape(InputAction.CallbackContext ctx)
     {
-        // if (IsExploration)
-        // {
-        //     ChangeState(GameState.Combat);
-        // }
-        // else if (IsCombat)
-        // {
-        //     ChangeState(GameState.Exploration);
-        // }
+
+    }
+
+    private void HandleOnCombatEnd(bool isVictory)
+    {
+
+        ChangeState(GameState.Exploration);
+    }
+
+    private void HandleOnCombatEscaped()
+    {
+
+        ChangeState(GameState.Exploration);
     }
 
     private void HandleOnPlayerInteracted(bool isInteracting)
