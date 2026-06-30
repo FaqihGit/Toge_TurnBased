@@ -2,6 +2,7 @@
   <Project Path="Fungus.csproj" />
   <Project Path="FungusEditor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assembly-CSharp-firstpass.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Fungus.FungusLuaEditor.csproj" />
   <Project Path="Fungus.FungusLuaJSONCheckerEditor.csproj" />
