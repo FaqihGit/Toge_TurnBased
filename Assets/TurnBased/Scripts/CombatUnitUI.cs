@@ -1,3 +1,4 @@
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,12 +8,18 @@ public class CombatUnitUI : MonoBehaviour
     [SerializeField] private RectTransform rectTransform;
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private TextMeshProUGUI energyText;
-    [SerializeField] private Slider hpSlider;
+    [SerializeField] private CanvasGroup canvasGroup;
+
+    [Header("Hp sliders")]
+    [SerializeField] private Slider hpSliderFront;
+    [SerializeField] private Slider hpSliderBack;
     [SerializeField] private TextMeshProUGUI hpText;
 
-    // Optional — used to hide the UI without disabling the GameObject (disabling
-    // would stop LateUpdate from running, so it could never come back on screen).
-    [SerializeField] private CanvasGroup canvasGroup;
+    [SerializeField] private float damageDelay = 0.15f;
+    [SerializeField] private float damageDuration = 0.4f;
+    [SerializeField] private float healDuration = 0.35f;
+
+    private Tween backBarTween;
 
     private Camera trackingCamera;
     private Transform worldTarget;
@@ -58,14 +65,42 @@ public class CombatUnitUI : MonoBehaviour
 
     public void SetEnergy(int energy, int energyCap)
     {
-        energyText.text = $"E:{energy}/{energyCap}";
+        energyText.text = $"E:<color=#F7F7F7>{energy}/{energyCap}";
     }
 
     public void SetHealth(int currentHealth, int maxHealth)
     {
-        // Was inverted (maxHealth / currentHealth) — fixed to current/max, with a
-        // guard so a 0-max edge case can't divide by zero.
-        hpSlider.value = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+        float target = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+        float currentFront = hpSliderFront.value;
+        float currentBack = hpSliderBack.value;
+
         hpText.text = $"{currentHealth}/{maxHealth}";
+
+        // Kill any ongoing tween but KEEP current value
+        backBarTween?.Kill(false);
+
+        if (target < currentFront)
+        {
+            // DAMAGE
+            // Front bar drops instantly
+            hpSliderFront.value = target;
+
+            // Back bar lags behind
+            backBarTween = hpSliderBack
+                .DOValue(target, damageDuration)
+                .SetDelay(backBarTween != null && backBarTween.IsActive() ? 0f : damageDelay)
+                .SetEase(Ease.OutQuad);
+        }
+        else if (target > currentFront)
+        {
+            // HEAL
+            // Back bar jumps immediately
+            hpSliderBack.value = target;
+
+            // Front bar catches up smoothly
+            backBarTween = hpSliderFront
+                .DOValue(target, healDuration)
+                .SetEase(Ease.OutQuad);
+        }
     }
 }

@@ -7,18 +7,35 @@ public class CombatCanvasManager : MonoBehaviour
     [SerializeField] private RectTransform canvasRoot; // parent under the single shared canvas
     [SerializeField] private Vector3 worldOffset = new Vector3(0f, 2f, 0f); // e.g. above the unit's head
 
+    [Header("Target Indicator")]
+    [SerializeField] private RectTransform indicatorUI;
+    [SerializeField] private Vector3 indicatorWorldOffset = new Vector3(0f, 2.5f, 0f);
+
+    private readonly Dictionary<CombatUnit, Transform> unitAnchors = new();
+    private Transform indicatorTarget;
+
     private Camera combatCamera;
     private readonly Dictionary<CombatUnit, CombatUnitUI> activeUI = new();
 
-    public void Init(Camera combatCamera)
+    void LateUpdate()
     {
-        Debug.Log($"Init {combatCamera}");
-        this.combatCamera = combatCamera;
+        if (indicatorTarget != null && indicatorUI != null && indicatorUI.gameObject.activeSelf)
+            PositionIndicator();
     }
 
-    /// Spawns one CombatUnitUI per unit and binds it to that unit's party slot anchor.
-    /// Relies on the same index alignment CombatManager already assumes for
-    /// SetIndicator/ShowSelection — units[i] <-> partyHandler's visual slot i.
+    public void Init(Camera combatCamera)
+    {
+        this.combatCamera = combatCamera;
+        ShowIndicator(false);
+    }
+
+    private void PositionIndicator()
+    {
+        Vector3 worldPos = indicatorTarget.position + indicatorWorldOffset;
+        Vector3 screenPos = combatCamera.WorldToScreenPoint(worldPos);
+        indicatorUI.position = screenPos; // match whatever space conversion CombatUnitUI.Bind uses (Overlay vs Camera-space canvas)
+    }
+
     public void BindParty(IReadOnlyList<CombatUnit> units, CombatPartyHandler partyHandler, int energyCap)
     {
         for (int i = 0; i < units.Count; i++)
@@ -31,8 +48,27 @@ public class CombatCanvasManager : MonoBehaviour
             ui.Bind(combatCamera, anchor, worldOffset);
 
             activeUI[unit] = ui;
+            unitAnchors[unit] = anchor;          // NEW — indicator reuses the same anchor
             RefreshUnit(unit, energyCap);
         }
+    }
+
+    public void ShowIndicator(bool isShow)
+    {
+        if (indicatorUI == null) return;
+        indicatorUI.gameObject.SetActive(isShow);
+        if (isShow) indicatorUI.SetAsLastSibling();
+        else indicatorTarget = null;
+    }
+
+    public void SetIndicator(CombatUnit unit)
+    {
+        if (unit == null || indicatorUI == null) return;
+        if (!unitAnchors.TryGetValue(unit, out var anchor)) return;
+
+        indicatorTarget = anchor;
+        indicatorUI.SetAsLastSibling();
+        PositionIndicator();
     }
 
     public void RefreshUnit(CombatUnit unit, int energyCap)
@@ -50,5 +86,8 @@ public class CombatCanvasManager : MonoBehaviour
             if (kv.Value != null) Destroy(kv.Value.gameObject);
 
         activeUI.Clear();
+        unitAnchors.Clear();
+        indicatorTarget = null;
+        ShowIndicator(false);
     }
 }

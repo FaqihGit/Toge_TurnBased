@@ -44,6 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb4fa257a87f81a42aaddd73855aa038, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  platformMat: {fileID: 2100000, guid: 711a49ef5f1f1ef4ea24157b612c586e, type: 2}
   currentState: 0
-  pauseTimeDuringDialogue: 0
-  pauseTimeDuringCombat: 0
+  cameraTransitionController: {fileID: 0}
+  combat: {fileID: 0}
+  canvas: {fileID: 0}
+  player: {fileID: 0}
+  targetGameStateDebug: 0

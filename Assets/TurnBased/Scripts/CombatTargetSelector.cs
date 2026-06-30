@@ -17,6 +17,7 @@ using UnityEngine.InputSystem;
 public class CombatTargetSelector
 {
     private PlayerInputAction playerControls;
+    private CombatCanvasManager combatCanvas;
 
     private CombatPartyHandler playerPartyHandler;
     private CombatPartyHandler enemyPartyHandler;
@@ -47,9 +48,10 @@ public class CombatTargetSelector
     /// way the listener's job is the same: go back to the action menu.
     public event Action OnTargetingCancelled;
 
-    public void Init(PlayerInputAction playerControls)
+    public void Init(PlayerInputAction playerControls, CombatCanvasManager combatCanvas) // signature change
     {
         this.playerControls = playerControls;
+        this.combatCanvas = combatCanvas;
     }
 
     public void BindParties(IReadOnlyList<CombatUnit> playerUnits, IReadOnlyList<CombatUnit> enemyUnits,
@@ -112,10 +114,9 @@ public class CombatTargetSelector
         targetCursorIndex = 0;
         targetCursorAxisReleased = true;
 
-        HideAllIndicators();
         targetingHandler.ShowSelectionAll(false);
-        targetingHandler.SetIndicator(GetPartySlotIndex(targetCandidates[targetCursorIndex]));
-        targetingHandler.ShowIndicator(true);
+        combatCanvas.SetIndicator(targetCandidates[targetCursorIndex]);
+        combatCanvas.ShowIndicator(true);
 
         awaitingTarget = true;
         targetingOpenedFrame = Time.frameCount;
@@ -192,8 +193,7 @@ public class CombatTargetSelector
 
     private void HideAllIndicators()
     {
-        playerPartyHandler?.ShowIndicator(false);
-        enemyPartyHandler?.ShowIndicator(false);
+        combatCanvas.ShowIndicator(false);
     }
 
     private void OnSelectionReleased(InputAction.CallbackContext context)
@@ -219,7 +219,7 @@ public class CombatTargetSelector
         int count = targetCandidates.Count;
         targetCursorIndex = ((targetCursorIndex + direction) % count + count) % count;
 
-        targetingHandler.SetIndicator(GetPartySlotIndex(targetCandidates[targetCursorIndex]));
+        combatCanvas.SetIndicator(targetCandidates[targetCursorIndex]);
     }
 
     private void OnSelect(InputAction.CallbackContext context)

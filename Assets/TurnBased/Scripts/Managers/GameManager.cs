@@ -13,6 +13,10 @@ public enum GameState
 public class GameManager : MonoBehaviour
 {
 
+    [Header("Asset References")]
+    [SerializeField] private Material platformMat;
+    private static readonly int ColorId = Shader.PropertyToID("_BaseColor");
+
     [Header("Current State (read-only at runtime)")]
     [SerializeField] private GameState currentState = GameState.Exploration;
     private GameState previousState;
@@ -27,6 +31,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private PlayerManager player;
     private PlayerInputAction playerControls;
 
+
     [Header("DEBUGS")]
     [SerializeField] private GameState targetGameStateDebug;
 
@@ -37,20 +42,22 @@ public class GameManager : MonoBehaviour
 
     private void Init()
     {
-
         playerControls = new();
         playerControls.General.Enable();
         playerControls.General.Escape.performed += OnInputEscape;
 
+        SetPlatformMatsAlpha(1);
         EnterState(currentState);
 
         combat.Init(playerControls, canvas.combatCanvas);
         combat.OnCombatEnded += HandleOnCombatEnd;
         combat.OnEscaped += HandleOnCombatEscaped;
+
         cameraTransitionController.Init(currentState);
+
         player.Init(playerControls);
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
-        player.OnPlayerTriggerCombat = (enemyParty) => HandleOnCombatEntered(enemyParty);
+        player.OnPlayerTriggerCombat = (enemyParty) => HandleOnPlayerEnterCombat(enemyParty);
 
         canvas.Init(playerControls, cameraTransitionController.mainCamera);
     }
@@ -58,18 +65,6 @@ public class GameManager : MonoBehaviour
     private void OnInputEscape(InputAction.CallbackContext ctx)
     {
 
-    }
-
-    private void HandleOnCombatEnd(bool isVictory)
-    {
-
-        ChangeState(GameState.Exploration);
-    }
-
-    private void HandleOnCombatEscaped()
-    {
-
-        ChangeState(GameState.Exploration);
     }
 
     private void HandleOnPlayerInteracted(bool isInteracting)
@@ -88,10 +83,31 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void HandleOnCombatEntered(CombatPartyHandler enemyParty)
+    private void HandleOnPlayerEnterCombat(CombatPartyHandler enemyParty)
     {
         ChangeState(GameState.Combat);
         combat.StartCombat(player.playerParty, enemyParty);
+    }
+
+    private void HandleOnCombatEnd(bool isVictory)
+    {
+
+        ChangeState(GameState.Exploration);
+    }
+
+    private void HandleOnCombatEscaped()
+    {
+
+        ChangeState(GameState.Exploration);
+    }
+
+    private void SetPlatformMatsAlpha(float alpha)
+    {
+        if (platformMat == null) return;
+
+        var color = platformMat.GetColor(ColorId);
+        color.a = alpha;
+        platformMat.SetColor(ColorId, color);
     }
 
     #region State Handlers
@@ -142,12 +158,14 @@ public class GameManager : MonoBehaviour
                 break;
 
             case GameState.Combat:
+                SetPlatformMatsAlpha(0);
                 break;
         }
     }
 
     private void ExitState(GameState state)
     {
+        SetPlatformMatsAlpha(1);
         DisablePlayerInput(state);
 
         switch (state)

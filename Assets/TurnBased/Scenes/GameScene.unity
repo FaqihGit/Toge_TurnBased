@@ -289,17 +289,6 @@ MonoBehaviour:
   stopVoiceover: 1
   waitForVO: 0
   setSayDialog: {fileID: 0}
---- !u!114 &605616980 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7546855783286970587, guid: e68f9336d1649814eba126c4cc28288f, type: 3}
-  m_PrefabInstance: {fileID: 3860692516438139377}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 605616971}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a334fe2ffb574b3583ff3b18b4792d3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &843924269
 GameObject:
   m_ObjectHideFlags: 0
@@ -470,7 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61dddfdc5e0e44ca298d8f46f7f5a915, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fungus::Fungus.FungusState
-  selectedFlowchart: {fileID: 605616980}
+  selectedFlowchart: {fileID: 0}
 --- !u!4 &1286175674
 Transform:
   m_ObjectHideFlags: 1

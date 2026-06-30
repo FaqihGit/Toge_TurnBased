@@ -69,7 +69,7 @@ public class CombatManager : MonoBehaviour
         this.playerControls = playerControls;
         this.combatCanvas = combatCanvas;
 
-        targetSelector.Init(playerControls);
+        targetSelector.Init(playerControls, combatCanvas);
         targetSelector.OnTargetsConfirmed += HandleTargetsConfirmed;
         targetSelector.OnTargetingCancelled += HandleTargetingCancelled;
 
@@ -234,9 +234,8 @@ public class CombatManager : MonoBehaviour
         var actorHandler = currentActor.faction == UnitFactionEnum.Player ? playerPartyHandler : enemyPartyHandler;
         int actorIdx = targetSelector.GetPartySlotIndex(currentActor);
 
-        HideAllIndicators();
-        actorHandler.SetIndicator(actorIdx);
-        actorHandler.ShowIndicator(true);
+        combatCanvas.SetIndicator(currentActor);
+        combatCanvas.ShowIndicator(true);
 
         SetActionOption(currentActor, currentActor.source.combatActionList);
         combatFlowchart.ExecuteBlock("TriggerAction");
@@ -376,8 +375,7 @@ public class CombatManager : MonoBehaviour
 
     private void HideAllIndicators()
     {
-        playerPartyHandler?.ShowIndicator(false);
-        enemyPartyHandler?.ShowIndicator(false);
+        combatCanvas.ShowIndicator(false);
     }
 
     #endregion
