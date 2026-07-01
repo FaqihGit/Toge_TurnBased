@@ -17,6 +17,8 @@ public class CombatActionSO : ScriptableObject
     public bool isIgnoreDef;
 
     public bool isBuff;
+    [Tooltip("A type of buff that removes damage instance but also decrease the buff turn by the count of damage instance")]
+    public bool isGuard;
     public UnitStats buffValue;
     public int buffTurn;
 

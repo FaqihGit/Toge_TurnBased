@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -16,6 +17,11 @@ public class CombatResolver
 {
     private readonly int maxEnergy;
 
+    /// Fired whenever a unit's Speed changes (buff applied, buff expired/reverted).
+    /// CombatManager listens to keep the turn order display in sync — this class
+    /// stays UI-agnostic and only reports that a change happened.
+    public event Action OnSpeedChanged;
+
     public CombatResolver(int maxEnergy)
     {
         this.maxEnergy = maxEnergy;
@@ -31,48 +37,71 @@ public class CombatResolver
 
             bool dealtDamage = false;
 
-            if (action.damageMult != 0f)
-            {
-                float rawAmount = actor.attack * action.damageMult;
-
-                if (rawAmount > 0f)
-                {
-                    float mitigated = action.isIgnoreDef ? rawAmount : Mathf.Max(0f, rawAmount - target.defense);
-                    target.currentHealth = Mathf.Clamp(target.currentHealth - mitigated, 0f, target.maxHealth);
-                    dealtDamage = true;
-                }
-                else
-                {
-                    // Negative damageMult = heal; defense/isIgnoreDef don't apply.
-                    target.currentHealth = Mathf.Clamp(target.currentHealth - rawAmount, 0f, target.maxHealth);
-                }
-            }
-
             if (action.isBuff)
                 ApplyStatModBuff(target, action);
+            else
+            {
+                if (action.damageMult != 0f)
+                {
+                    float rawAmount = actor.attack * action.damageMult;
 
-            if (action.appliesStun)
-                ApplyStun(target, action.buffTurn);
+                    if (rawAmount > 0f)
+                    {
+                        if (target.IsGuarding)
+                        {
+                            // Guard absorbs the entire hit — no mitigation math, no HP loss.
+                            ConsumeGuardHit(target);
+                            dealtDamage = true; // still counts as a hit for GDD 4.1 energy gain
+                        }
+                        else
+                        {
+                            float mitigated = action.isIgnoreDef ? rawAmount : Mathf.Max(0f, rawAmount - target.defense);
+                            target.currentHealth = Mathf.Clamp(target.currentHealth - mitigated, 0f, target.maxHealth);
+                            dealtDamage = true;
+                        }
+                    }
+                    else
+                    {
+                        // Negative damageMult = heal; defense/isIgnoreDef/guard don't apply.
+                        target.currentHealth = Mathf.Clamp(target.currentHealth - rawAmount, 0f, target.maxHealth);
+                    }
+                }
 
-            // GDD 4.1: hit by attack -> +1 Energy, always applies (even through Stun).
-            if (dealtDamage)
-                target.energy = Mathf.Min(maxEnergy, target.energy + 1);
+                if (action.appliesStun)
+                    ApplyStun(target, action.buffTurn);
+
+                if (dealtDamage)
+                    target.energy = Mathf.Min(maxEnergy, target.energy + 1);
+            }
         }
     }
 
-    /// GDD 8: duration ticks at the start of the unit's own turn.
+    private void DecrementStatus(CombatUnit unit, int index)
+    {
+        var status = unit.activeStatuses[index];
+        status.remainingTurns--;
+
+        if (status.remainingTurns <= 0)
+        {
+            RevertStatus(unit, status);
+            unit.activeStatuses.RemoveAt(index);
+        }
+    }
+
     public void TickStatuses(CombatUnit unit)
     {
         for (int i = unit.activeStatuses.Count - 1; i >= 0; i--)
-        {
-            var status = unit.activeStatuses[i];
-            status.remainingTurns--;
+            DecrementStatus(unit, i);
+    }
 
-            if (status.remainingTurns <= 0)
-            {
-                RevertStatus(unit, status);
-                unit.activeStatuses.RemoveAt(i);
-            }
+    private void ConsumeGuardHit(CombatUnit target)
+    {
+        for (int i = target.activeStatuses.Count - 1; i >= 0; i--)
+        {
+            var status = target.activeStatuses[i];
+            if (status.type != StatusType.StatMod || !status.isGuard) continue;
+
+            DecrementStatus(target, i);
         }
     }
 
@@ -86,7 +115,6 @@ public class CombatResolver
 
     private void ApplyStatModBuff(CombatUnit target, CombatActionSO action)
     {
-        // GDD 8: no stacking — a reapplication refreshes rather than stacks.
         for (int i = target.activeStatuses.Count - 1; i >= 0; i--)
         {
             if (target.activeStatuses[i].sourceAction == action)
@@ -96,7 +124,6 @@ public class CombatResolver
             }
         }
 
-        // GDD 8: Speed buffs/debuffs are % based; Attack/Defense flat for now.
         float speedDelta = target.speed * action.buffValue.combatSpeed;
 
         var status = new ActiveStatus
@@ -106,13 +133,17 @@ public class CombatResolver
             remainingTurns = action.buffTurn,
             attackDelta = action.buffValue.combatAttack,
             defenseDelta = action.buffValue.combatDefense,
-            speedDelta = speedDelta
+            speedDelta = speedDelta,
+            isGuard = action.isGuard
         };
 
         target.attack += status.attackDelta;
         target.defense += status.defenseDelta;
         if (status.speedDelta != 0f)
+        {
             target.ChangeSpeed(target.speed + status.speedDelta);
+            OnSpeedChanged?.Invoke();
+        }
 
         target.activeStatuses.Add(status);
     }
@@ -139,6 +170,9 @@ public class CombatResolver
         unit.attack -= status.attackDelta;
         unit.defense -= status.defenseDelta;
         if (status.speedDelta != 0f)
+        {
             unit.ChangeSpeed(unit.speed - status.speedDelta);
+            OnSpeedChanged?.Invoke();
+        }
     }
 }

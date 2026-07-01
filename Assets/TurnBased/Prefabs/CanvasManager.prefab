@@ -523,6 +523,7 @@ RectTransform:
   - {fileID: 3207525543137639477}
   - {fileID: 2117785410320159905}
   - {fileID: 2843946662257108405}
+  - {fileID: 284413935301928242}
   m_Father: {fileID: 4157568116699595815}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -551,6 +552,9 @@ MonoBehaviour:
   actionPromptFadeDelay: 1
   indicatorUI: {fileID: 2117785410320159905}
   indicatorWorldOffset: {x: 0, y: 0.5, z: 0}
+  turnOrderPanel: {fileID: 284413935301928242}
+  turnOrderItemPrefab: {fileID: 3235694996557416838, guid: ebd76dfaaa1afc044b3adbaf43dab800, type: 3}
+  maxTurnOrderShown: 5
 --- !u!1 &1616114742103495801
 GameObject:
   m_ObjectHideFlags: 0
@@ -587,7 +591,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 216.28, y: -36.8547}
-  m_SizeDelta: {x: 372.56, y: 73.7094}
+  m_SizeDelta: {x: 0, y: 73.7094}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6509647215080572040
 CanvasRenderer:
@@ -2438,6 +2442,68 @@ MonoBehaviour:
   sayDialog: {fileID: 4295046800399869022}
   dialogInput: {fileID: 695718336513919411}
   _cutsceneLetterbox: {fileID: 9152627486614645907}
+--- !u!1 &7213877603937153095
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 284413935301928242}
+  - component: {fileID: 890033572089646072}
+  m_Layer: 5
+  m_Name: TurnOrderPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &284413935301928242
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7213877603937153095}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 393464435266078273}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 28, y: -26}
+  m_SizeDelta: {x: 1225.187, y: 100}
+  m_Pivot: {x: 0, y: 1}
+--- !u!114 &890033572089646072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7213877603937153095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 0
+  m_Spacing: 10
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 1
+  m_ChildControlWidth: 1
+  m_ChildControlHeight: 1
+  m_ChildScaleWidth: 1
+  m_ChildScaleHeight: 1
+  m_ReverseArrangement: 0
 --- !u!1 &7506967807325896732
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,6 +5,10 @@ using UnityEngine.InputSystem;
 
 public class CanvasManager : MonoBehaviour
 {
+
+    public Action<int> OnMenuOptionSelection;
+
+    [Header("Component References")]
     [SerializeField] private CombatCanvasManager _combatCanvas; public CombatCanvasManager combatCanvas => _combatCanvas;
     [SerializeField] private WorldCanvasManager _worldCanvas; public WorldCanvasManager worldCanvas => _worldCanvas;
     [SerializeField] private NavigableMenuDialog menuDialog;
@@ -34,29 +38,30 @@ public class CanvasManager : MonoBehaviour
         _combatCanvas.Init(mainCam);
         _worldCanvas.Init(mainCam);
         _cutsceneLetterbox.Init(cutscene);
+        menuDialog.OnOptionSelection += HandleOnMenuOptionSelection;
     }
 
     private void SubscribeControls(bool isSubscribe)
     {
         if (playerControls == null) return;
 
-        playerControls.Dialogue.Selection.performed -= OnSelection;
-        playerControls.Dialogue.Select.performed -= OnSelect;
+        playerControls.Dialogue.Selection.performed -= HandleOnSelection;
+        playerControls.Dialogue.Select.performed -= HandleOnSelect;
 
-        playerControls.Combat.Selection.performed -= OnSelection;
-        playerControls.Combat.Select.performed -= OnSelect;
+        playerControls.Combat.Selection.performed -= HandleOnSelection;
+        playerControls.Combat.Select.performed -= HandleOnSelect;
 
         if (isSubscribe)
         {
-            playerControls.Dialogue.Selection.performed += OnSelection;
-            playerControls.Dialogue.Select.performed += OnSelect;
+            playerControls.Dialogue.Selection.performed += HandleOnSelection;
+            playerControls.Dialogue.Select.performed += HandleOnSelect;
 
-            playerControls.Combat.Selection.performed += OnSelection;
-            playerControls.Combat.Select.performed += OnSelect;
+            playerControls.Combat.Selection.performed += HandleOnSelection;
+            playerControls.Combat.Select.performed += HandleOnSelect;
         }
     }
 
-    private void OnSelection(InputAction.CallbackContext context)
+    private void HandleOnSelection(InputAction.CallbackContext context)
     {
         AdvanceDialog();
 
@@ -69,8 +74,7 @@ public class CanvasManager : MonoBehaviour
             bool isPastDeadzone = Mathf.Abs(y) >= activeMenu.SelectionDeadzone;
 
             // Edge-detect the deadzone crossing so a held stick doesn't fire
-            // a move every frame the action is "performed" - same flag-style
-            // guard used for jump/interact elsewhere in the project.
+            // a move every frame the action is "performed" 
             if (wasNeutral && isPastDeadzone)
             {
                 if (y > 0) activeMenu.SelectPreviousOption();
@@ -84,7 +88,7 @@ public class CanvasManager : MonoBehaviour
         previousSelectionY = 0f;
     }
 
-    private void OnSelect(InputAction.CallbackContext context)
+    private void HandleOnSelect(InputAction.CallbackContext context)
     {
         AdvanceDialog();
 
@@ -93,6 +97,11 @@ public class CanvasManager : MonoBehaviour
             activeMenu.ConfirmSelection();
             return;
         }
+    }
+
+    private void HandleOnMenuOptionSelection(int idx)
+    {
+        OnMenuOptionSelection?.Invoke(idx);
     }
 
     [ContextMenu("Advance Dialog")]

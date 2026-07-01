@@ -10,6 +10,8 @@ public class CombatCanvasManager : MonoBehaviour
     [SerializeField] private Transform worldCanvas;
     [SerializeField] private CombatUnitUI combatUnitUiPrefab;
     [SerializeField] private Vector3 worldOffset = new(0f, 2f, 0f);
+    private readonly Dictionary<CombatUnit, Transform> unitAnchors = new();
+    private readonly Dictionary<CombatUnit, CombatUnitUI> activeUI = new();
 
     [Header("Action Prompt")]
     [SerializeField] private CanvasGroup actionPromptCanvasGroup;
@@ -21,12 +23,18 @@ public class CombatCanvasManager : MonoBehaviour
     [Header("Target Indicator")]
     [SerializeField] private RectTransform indicatorUI;
     [SerializeField] private Vector3 indicatorWorldOffset = new(0f, 2.5f, 0f);
-
-    private readonly Dictionary<CombatUnit, Transform> unitAnchors = new();
     private Transform indicatorTarget;
 
+    [Header("Turn Order")]
+    [SerializeField] private RectTransform turnOrderPanel;
+    [SerializeField] private CombatTurnOrderItemUI turnOrderItemPrefab;
+    [SerializeField] private int maxTurnOrderShown = 5;
+
+    private readonly List<CombatTurnOrderItemUI> turnOrderItems = new();
+
+    public int MaxTurnOrderShown => maxTurnOrderShown;
+
     private Camera combatCamera;
-    private readonly Dictionary<CombatUnit, CombatUnitUI> activeUI = new();
 
     void LateUpdate()
     {
@@ -131,6 +139,34 @@ public class CombatCanvasManager : MonoBehaviour
         ui.SetEnergy(unit.energy, energyCap);
     }
 
+    public void RefreshTurnOrder(IReadOnlyList<CombatUnit> upcoming)
+    {
+        if (turnOrderPanel == null || turnOrderItemPrefab == null) return;
+
+        int neededSlots = maxTurnOrderShown + 1; // +1 overflow slot
+        while (turnOrderItems.Count < neededSlots)
+            turnOrderItems.Add(Instantiate(turnOrderItemPrefab, turnOrderPanel));
+
+        for (int i = 0; i < maxTurnOrderShown; i++)
+        {
+            var item = turnOrderItems[i];
+            item.gameObject.SetActive(true);
+
+            if (i < upcoming.Count)
+                item.Init(upcoming[i]);
+            else
+                item.SetEmpty(); // defensive: only hit if fewer alive units than maxShown
+        }
+
+        // Overflow slot: while combat is active the queue never truly ends
+        // (passive fill keeps it going), so show it whenever we have anything
+        // to display at all.
+        var overflowItem = turnOrderItems[maxTurnOrderShown];
+        bool showOverflow = upcoming.Count > 0;
+        overflowItem.gameObject.SetActive(showOverflow);
+        if (showOverflow) overflowItem.SetEmpty();
+    }
+
     public void ClearAll()
     {
         foreach (var kv in activeUI)
@@ -140,5 +176,8 @@ public class CombatCanvasManager : MonoBehaviour
         unitAnchors.Clear();
         indicatorTarget = null;
         ShowIndicator(false);
+
+        foreach (var item in turnOrderItems)
+            if (item != null) item.gameObject.SetActive(false);
     }
 }

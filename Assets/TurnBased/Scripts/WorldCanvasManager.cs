@@ -40,6 +40,6 @@ public class WorldCanvasManager : MonoBehaviour
 
         Vector3 worldPos = targetInteractable.position;
         Vector3 screenPos = mainCam.WorldToScreenPoint(worldPos);
-        interactablePrompt.position = screenPos; // match whatever space conversion CombatUnitUI.Bind uses (Overlay vs Camera-space canvas)
+        interactablePrompt.position = screenPos;
     }
 }

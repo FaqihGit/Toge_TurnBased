@@ -77,6 +77,8 @@ public class CombatManager : MonoBehaviour
         lifecycle.OnCombatEnded += HandleCombatEnded;
         lifecycle.OnEscaped += HandleEscaped;
 
+        combatResolver.OnSpeedChanged += RefreshTurnOrderDisplay;
+
         SubscribeControls(true);
     }
 
@@ -156,6 +158,8 @@ public class CombatManager : MonoBehaviour
         LogMessage($"StartTurn name {actor.source.name}");
         currentActor = actor;
 
+        RefreshTurnOrderDisplay();
+
         bool wasStunned = actor.IsStunned;
 
         if (!wasStunned)
@@ -193,8 +197,24 @@ public class CombatManager : MonoBehaviour
         combatCanvas.SetIndicator(currentActor);
         combatCanvas.ShowIndicator(true);
 
+        SetActionSelection(0);
         flowchartHandler.SetActionOption(currentActor, currentActor.source.combatActionList);
         flowchartHandler.TriggerActionBlock();
+    }
+
+    private void RefreshTurnOrderDisplay()
+    {
+        int maxShown = combatCanvas.MaxTurnOrderShown;
+        var display = new List<CombatUnit>(maxShown);
+
+        if (currentActor != null)
+            display.Add(currentActor);
+
+        int remaining = maxShown - display.Count;
+        if (remaining > 0)
+            display.AddRange(turnOrder.PeekOrder(allUnits, remaining));
+
+        combatCanvas.RefreshTurnOrder(display);
     }
 
     private void EndTurn()
@@ -322,6 +342,21 @@ public class CombatManager : MonoBehaviour
             if (!u.IsDead) result.Add(u);
 
         return result;
+    }
+
+    public void SetActionSelection(int optionIdx)
+    {
+        if (
+            currentActor == null
+            || currentActor.source == null
+            || currentActor.source.combatActionList == null
+            || currentActor.source.combatActionList.Count <= 0
+            || currentActor.source.combatActionList.Count <= optionIdx
+            )
+            return;
+
+        var currentAction = currentActor.source.combatActionList[optionIdx];
+        flowchartHandler.SetActionPrompt(CombatActionDescriptionBuilder.Build(currentActor, currentAction));
     }
 
     #endregion

@@ -6,6 +6,7 @@ using UnityEngine;
 public class UnitDataSO : ScriptableObject
 {
     public new string name;
+    public Sprite sprite;
 
     public UnitStats stats;
     public List<CombatActionSO> combatActionList;

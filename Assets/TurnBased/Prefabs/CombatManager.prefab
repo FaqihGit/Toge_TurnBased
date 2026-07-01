@@ -46,6 +46,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatManager
   combatFlowchart: {fileID: 6978836647513959393}
+  enemyActionDelay: 0.6
+  _postActionSettle: 0.15
 --- !u!1 &1809999598363546698
 GameObject:
   m_ObjectHideFlags: 0
@@ -85,6 +87,7 @@ GameObject:
   - component: {fileID: 4418671795891240270}
   - component: {fileID: 4583779408169541232}
   - component: {fileID: 5638671186298874423}
+  - component: {fileID: 130879075097925960}
   m_Layer: 0
   m_Name: Flowchart
   m_TagString: Untagged
@@ -133,8 +136,7 @@ MonoBehaviour:
     height: 859
   selectedBlocks:
   - {fileID: 7460317621818153474}
-  selectedCommands:
-  - {fileID: 7198909207582113133}
+  selectedCommands: []
   variables:
   - {fileID: 6012670640609233176}
   - {fileID: 7062516293825146487}
@@ -145,6 +147,7 @@ MonoBehaviour:
   - {fileID: 2104164603483292012}
   - {fileID: 6964505253514658659}
   - {fileID: 7556005455645712312}
+  - {fileID: 130879075097925960}
   description: 
   stepPause: 0
   colorCommands: 1
@@ -472,7 +475,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Fungus::Fungus.Say
   itemId: 6
   indentLevel: 0
-  storyText: Choose your action
+  storyText: '{$ActionPrompt}'
   description: 
   character: {fileID: 0}
   portrait: {fileID: 0}
@@ -1395,3 +1398,18 @@ MonoBehaviour:
   stringEvent:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &130879075097925960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1809999598363546698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4580f28dd8581476b810b38eea2f1316, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fungus::Fungus.StringVariable
+  scope: 1
+  key: ActionPrompt
+  value: 

@@ -67,6 +67,7 @@ public class GameManager : MonoBehaviour
         cutscene.OnCutsceneEnded += HandleOnCutsceneEnded;
 
         canvas.Init(playerControls, cameraTransitionController.mainCamera, cutscene);
+        canvas.OnMenuOptionSelection += HandleOnCanvasMenuOptionSelection;
     }
 
     private void OnInputEscape(InputAction.CallbackContext ctx)
@@ -122,6 +123,11 @@ public class GameManager : MonoBehaviour
     private void HandleOnCutsceneEnded()
     {
         ChangeState(GameState.Exploration);
+    }
+
+    private void HandleOnCanvasMenuOptionSelection(int optionIdx)
+    {
+        combat.SetActionSelection(optionIdx);
     }
 
     private void SetPlatformMatsAlpha(float alpha)

@@ -36,6 +36,16 @@ public class CombatUnit
         }
     }
 
+    public bool IsGuarding
+    {
+        get
+        {
+            foreach (var s in activeStatuses)
+                if (s.type == StatusType.StatMod && s.isGuard) return true;
+            return false;
+        }
+    }
+
     public CombatUnit(UnitDataSO source, UnitFactionEnum faction)
     {
         this.source = source;
@@ -112,9 +122,11 @@ public class ActiveStatus
     public StatusType type;
     public int remainingTurns;
 
-    public CombatActionSO sourceAction; // lets a reapplication refresh instead of stack
+    public CombatActionSO sourceAction;
 
     public float attackDelta;
     public float defenseDelta;
     public float speedDelta;
+
+    public bool isGuard;
 }

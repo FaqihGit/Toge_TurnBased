@@ -69,4 +69,54 @@ public class CombatTurnOrder
             if (!anyAlive) return null;
         }
     }
+
+    /// Non-mutating simulation of GetNextActor for UI display purposes.
+    /// Returns up to `count` upcoming actors without touching the real
+    /// speedBank values. Mirrors GetNextActor's selection + passive-fill
+    /// logic exactly, but against a local copy of the banks.
+    public List<CombatUnit> PeekOrder(IReadOnlyList<CombatUnit> allUnits, int count)
+    {
+        var result = new List<CombatUnit>(Mathf.Max(0, count));
+        if (count <= 0) return result;
+
+        var aliveUnits = new List<CombatUnit>();
+        var banks = new Dictionary<CombatUnit, float>();
+        foreach (var u in allUnits)
+        {
+            if (u.IsDead) continue;
+            aliveUnits.Add(u);
+            banks[u] = u.speedBank;
+        }
+        if (aliveUnits.Count == 0) return result;
+
+        while (result.Count < count)
+        {
+            CombatUnit best = null;
+
+            foreach (var u in aliveUnits)
+            {
+                float bank = banks[u];
+                if (bank < turnThreshold) continue;
+
+                if (best == null || bank > banks[best])
+                    best = u;
+                else if (Mathf.Approximately(bank, banks[best]) &&
+                         u.faction == UnitFactionEnum.Player && best.faction != UnitFactionEnum.Player)
+                    best = u;
+            }
+
+            if (best != null)
+            {
+                banks[best] -= turnThreshold;
+                result.Add(best);
+            }
+            else
+            {
+                foreach (var u in aliveUnits)
+                    banks[u] += u.speed;
+            }
+        }
+
+        return result;
+    }
 }

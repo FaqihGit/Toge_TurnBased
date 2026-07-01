@@ -16,9 +16,10 @@ MonoBehaviour:
   energyCost: 2
   target: 0
   targetCount: 1
-  damageMult: -10
+  damageMult: -20
   isIgnoreDef: 0
   isBuff: 0
+  isGuard: 0
   buffValue:
     maxHealth: 100
     currentHealth: 100

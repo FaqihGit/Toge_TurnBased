@@ -11,6 +11,8 @@ public class CombatFlowchartHandler
 {
     private Flowchart combatFlowchart;
 
+    private static readonly string ActionPromptVariable = "ActionPrompt";
+
     private static readonly string[] OptionVariables =
     {
         "OptionA", "OptionB", "OptionC", "OptionD"
@@ -71,5 +73,10 @@ public class CombatFlowchartHandler
     private static string ActionStringBuilder(string name, int energy)
     {
         return $"{name}\n E:{energy}";
+    }
+
+    public void SetActionPrompt(string prompt)
+    {
+        combatFlowchart.SetStringVariable(ActionPromptVariable, string.IsNullOrEmpty(prompt) ? "Choose your action" : prompt);
     }
 }

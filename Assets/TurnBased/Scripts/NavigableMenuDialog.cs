@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Fungus;
 using UnityEngine;
@@ -15,6 +16,7 @@ using UnityEngine.UI;
 /// </summary>
 public class NavigableMenuDialog : MenuDialog
 {
+    public Action<int> OnOptionSelection;
     [Header("Navigation")]
     [Tooltip("Minimum |Selection| input value before a directional move is registered. Prevents stick drift/noise from triggering repeated moves.")]
     [SerializeField] private float selectionDeadzone = 0.5f;
@@ -50,6 +52,8 @@ public class NavigableMenuDialog : MenuDialog
         if (index < 0 || index >= options.Length) return;
 
         EventSystem.current.SetSelectedGameObject(options[index].gameObject);
+
+        OnOptionSelection?.Invoke(index);
     }
 
     /// <summary>
@@ -88,5 +92,7 @@ public class NavigableMenuDialog : MenuDialog
             : (currentIndex + direction + options.Length) % options.Length;
 
         EventSystem.current.SetSelectedGameObject(options[nextIndex].gameObject);
+
+        OnOptionSelection?.Invoke(nextIndex);
     }
 }
