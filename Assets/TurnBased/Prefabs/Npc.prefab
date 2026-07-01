@@ -632,12 +632,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5108669327c860d4a89f3ad3e6e4fafa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactables
+  OnEndDialogEvent:
+    m_PersistentCalls:
+      m_Calls: []
   npcData: {fileID: 11400000, guid: 80520bde8f380254f8d580dbbfc45cdb, type: 2}
-  teamDataList:
-  - {fileID: 11400000, guid: 80520bde8f380254f8d580dbbfc45cdb, type: 2}
-  - {fileID: 11400000, guid: 97f2a951d9d42334481eac4b17c3f5d6, type: 2}
-  - {fileID: 11400000, guid: 25ee62466b00f684bb4f9e18fd02ec48, type: 2}
-  - {fileID: 11400000, guid: 0f751b14d96892b4cadddf423cc96128, type: 2}
+  teamDataList: []
   npcFlowchart: {fileID: 7546855783286970587}
   _canvasTarget: {fileID: 795097314492354439}
   npcCharacter: {fileID: 8944697830798066471}

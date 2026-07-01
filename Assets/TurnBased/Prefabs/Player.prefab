@@ -223,6 +223,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b8181393beb1894088f3f321a859bb1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerManager
+  partyUnitList:
+  - {fileID: 11400000, guid: 7f7c47230a58fda4a96863cc5b319827, type: 2}
+  - {fileID: 11400000, guid: 74c3f99cf17fb3c42b7f8e5d3b7dc95b, type: 2}
+  - {fileID: 11400000, guid: bbafef83d68ac3d459a4f047bc66252b, type: 2}
+  - {fileID: 11400000, guid: db6825fdd524d1248b965ac6bf16a92f, type: 2}
   _exploration: {fileID: 6717512029045445086}
   _playerParty: {fileID: 7210102741474978137}
 --- !u!114 &6717512029045445086

@@ -20,6 +20,11 @@ public class UnitStats
     public float combatAttack = 1;
     public float combatDefense = 0;
     public float combatSpeed = 10;
+
+    public void ResetHealth()
+    {
+        currentHealth = maxHealth;
+    }
 }
 
 [Serializable]

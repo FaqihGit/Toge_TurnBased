@@ -50,8 +50,11 @@ public class CutsceneManager : MonoBehaviour
         OnCutsceneStarted?.Invoke();
         player.SetCutsceneControl(true);
 
+        LogMessage("RunCutscene START");
+
         foreach (CutsceneStep step in steps)
         {
+            LogMessage("RunCutscene step.Type");
             switch (step.Type)
             {
                 case CutsceneStepType.MoveTo:
@@ -67,18 +70,22 @@ public class CutsceneManager : MonoBehaviour
         player.SetCutsceneControl(false);
         runningCutscene = null;
         OnCutsceneEnded?.Invoke();
+        LogMessage("RunCutscene ENDS");
     }
 
     private IEnumerator RunMoveStep(CutsceneStep step)
     {
         if (step.Destination == null) yield break;
 
+        LogMessage("RunMoveStep STARTS");
         while (true)
         {
-            Vector3 toTarget = step.Destination.position - player.transform.position;
+            Vector2 toTarget = step.Destination.position - player.transform.position;
             toTarget.y = 0f;
 
+            LogMessage($"RunMoveStep toTarget {toTarget}");
             float distance = toTarget.magnitude;
+            LogMessage($"RunMoveStep distance {distance} step.ArrivalThreshold {step.ArrivalThreshold}");
             if (distance <= step.ArrivalThreshold)
                 break;
 
@@ -90,6 +97,7 @@ public class CutsceneManager : MonoBehaviour
 
             yield return null;
         }
+        LogMessage("RunMoveStep ENDS");
 
         player.DriveExternalMove(0f);
     }
@@ -119,5 +127,10 @@ public class CutsceneManager : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawRay(obstacleCheckOrigin.position, Vector3.right * obstacleCheckDistance);
         Gizmos.DrawRay(obstacleCheckOrigin.position, Vector3.left * obstacleCheckDistance);
+    }
+
+    private void LogMessage(string msg)
+    {
+        // Debug.Log($"[CutsceneManager] {msg}");
     }
 }

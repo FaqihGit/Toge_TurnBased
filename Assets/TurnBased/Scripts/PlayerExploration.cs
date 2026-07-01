@@ -280,7 +280,7 @@ public class PlayerExploration : MonoBehaviour
         if (isInteracting)
         {
             // LogMessage($"OnPlayerInteracted {true}");
-            target.OnTriggerCombat = HandleOnCombatTriggered;
+            target.OnTriggerCombatAction = HandleOnCombatTriggered;
             OnPlayerInteracted?.Invoke(true);
         }
 

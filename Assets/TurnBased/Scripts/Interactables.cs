@@ -5,8 +5,10 @@ using UnityEngine.Events;
 
 public class Interactables : MonoBehaviour
 {
+    [Header("Events")]
+    [SerializeField] private UnityEvent OnEndDialogEvent;
     private UnityAction OnEndDialogAction;
-    public UnityAction<CombatPartyHandler> OnTriggerCombat;
+    public UnityAction<CombatPartyHandler> OnTriggerCombatAction;
 
     [Header("Data References")]
     [SerializeField] private UnitDataSO npcData;
@@ -19,10 +21,17 @@ public class Interactables : MonoBehaviour
     [SerializeField] private CombatPartyHandler combatParty;
     private bool isInteracting;
 
+    private bool hasInitialized = false;
+
     [ContextMenu("Init")]
     public void Init()
     {
+        if (hasInitialized) return;
+
         npcCharacter.SetStandardText(npcData.name);
+        combatParty.partyUnitList = new(teamDataList);
+
+        hasInitialized = true;
     }
 
     public bool Interact(UnityAction OnEndDialogCallback)
@@ -45,7 +54,7 @@ public class Interactables : MonoBehaviour
     public void TriggerCombat()
     {
         OnDialog(false);
-        OnTriggerCombat?.Invoke(combatParty);
+        OnTriggerCombatAction?.Invoke(combatParty);
     }
 
     public void OnDialog(bool isStart)
@@ -56,6 +65,8 @@ public class Interactables : MonoBehaviour
         {
             OnEndDialogAction?.Invoke();
             OnEndDialogAction = null;
+
+            OnEndDialogEvent?.Invoke();
         }
     }
 

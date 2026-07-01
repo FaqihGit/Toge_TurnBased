@@ -12,7 +12,7 @@ public class CombatPartyHandler : MonoBehaviour
     [SerializeField] private GameObject _worldMember;
     [SerializeField] private List<CombatUnitVisual> _partyVisualList;
     public Vector3 WorldMemberPosition => _worldMember.transform.position;
-    public List<UnitDataSO> partyUnitList;
+    [HideInInspector] public List<UnitDataSO> partyUnitList;
 
     [Header("Animation")]
     [SerializeField] private float _undergroundOffset = 2f;

@@ -21,7 +21,6 @@ public class GameManager : MonoBehaviour
     [Header("Current State (read-only at runtime)")]
     [SerializeField] private GameState currentState = GameState.Exploration;
     private GameState previousState;
-    private GameState stateBeforeCutscene;
     public bool IsExploration => currentState == GameState.Exploration;
     public bool IsDialogueOrCutscene => currentState == GameState.DialogueCutscene || currentState == GameState.Cutscene;
     public bool IsCombat => currentState == GameState.Combat;
@@ -117,16 +116,12 @@ public class GameManager : MonoBehaviour
 
     private void HandleOnCutsceneStarted()
     {
-        // Cutscene can start mid-dialogue-ping-pong in theory, but in practice starts from
-        // Exploration. Captured explicitly rather than reusing previousState, since previousState
-        // gets overwritten by any TriggerDialog steps that run during the cutscene itself.
-        stateBeforeCutscene = currentState;
         ChangeState(GameState.Cutscene);
     }
 
     private void HandleOnCutsceneEnded()
     {
-        ChangeState(stateBeforeCutscene);
+        ChangeState(GameState.Exploration);
     }
 
     private void SetPlatformMatsAlpha(float alpha)
