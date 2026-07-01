@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Xml.Schema;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -8,6 +9,7 @@ using UnityEngine.InputSystem;
 public class PlayerExploration : MonoBehaviour
 {
     public UnityAction<bool> OnPlayerInteracted;
+    public UnityAction<Interactables> OnPlayerInteractableUpdate;
     public Action<CombatPartyHandler> OnPlayerTriggerCombat;
 
     [Header("Movement")]
@@ -46,10 +48,23 @@ public class PlayerExploration : MonoBehaviour
     private int playerLayer;
     private int oneWayPlatformLayer;
 
-    private Interactables currentInteractable;
+    private Interactables _currentInteractable;
+
+    public Interactables currentInteractable
+    {
+        get { return _currentInteractable; }
+        private set
+        {
+            if (_currentInteractable != value) OnPlayerInteractableUpdate?.Invoke(value);
+            _currentInteractable = value;
+        }
+    }
     private bool interactRequested;
 
+    private bool isExternallyDriven;
+
     public Interactables CurrentInteractable => currentInteractable;
+    public bool IsGrounded => isGrounded;
 
     private void Awake()
     {
@@ -105,10 +120,16 @@ public class PlayerExploration : MonoBehaviour
     {
         HandleIsGrounded();
 
-        HandleJumpRequest();
+        if (!isExternallyDriven)
+        {
+            HandleJumpRequest();
+        }
 
         HandleCurrentPlatform();
-        HandleDropRequest();
+        if (!isExternallyDriven)
+        {
+            HandleDropRequest();
+        }
 
         HandleInteractDetection();
         HandleInteractRequest();
@@ -182,26 +203,23 @@ public class PlayerExploration : MonoBehaviour
     private void HandleMovement()
     {
         Vector3 velocity = rb.linearVelocity;
-
-        // Horizontal movement
         velocity.x = moveInput.x * moveSpeed;
 
-        // Instant jump
         if (jumpRequested)
         {
             velocity.y = jumpForce;
             jumpRequested = false;
         }
-
-        // Better jump physics
-        if (velocity.y < 0f)
+        else if (isGrounded && velocity.y <= 0f)
         {
-            // Falling -> stronger gravity
+
+        }
+        else if (velocity.y < 0f)
+        {
             velocity += (fallMultiplier - 1f) * Physics.gravity.y * Time.fixedDeltaTime * Vector3.up;
         }
         else if (velocity.y > 0f && moveInput.y <= 0.1f)
         {
-            // Released jump early -> shorter jump
             velocity += (lowJumpMultiplier - 1f) * Physics.gravity.y * Time.fixedDeltaTime * Vector3.up;
         }
 
@@ -227,8 +245,7 @@ public class PlayerExploration : MonoBehaviour
         foreach (Collider hit in hits)
         {
             // Layer mask narrows the candidate set; component check confirms it's a real interactable
-            Interactables interactable = hit.GetComponent<Interactables>();
-            if (interactable == null)
+            if (!hit.TryGetComponent<Interactables>(out var interactable))
                 continue;
 
             float sqrDist = (hit.transform.position - interactCheck.position).sqrMagnitude;
@@ -246,30 +263,70 @@ public class PlayerExploration : MonoBehaviour
     {
         if (interactRequested)
         {
-            if (currentInteractable != null)
-            {
-                bool isInteracting = currentInteractable.Interact(HandleOnInteractionEnd);
-                if (isInteracting)
-                {
-                    LogMessage($"OnPlayerInteracted {true}");
-                    currentInteractable.OnTriggerCombat = HandleOnCombatTriggered;
-                    OnPlayerInteracted?.Invoke(true);
-                }
-            }
-
+            TryInteract(currentInteractable);
             interactRequested = false;
         }
     }
 
+    /// <summary>
+    /// Attempts to start an interaction with the given target. Shared by the player's own
+    /// input-driven interact request and any externally driven interaction (e.g. cutscenes).
+    /// </summary>
+    public bool TryInteract(Interactables target)
+    {
+        if (target == null) return false;
+
+        bool isInteracting = target.Interact(HandleOnInteractionEnd);
+        if (isInteracting)
+        {
+            // LogMessage($"OnPlayerInteracted {true}");
+            target.OnTriggerCombat = HandleOnCombatTriggered;
+            OnPlayerInteracted?.Invoke(true);
+        }
+
+        return isInteracting;
+    }
+
     private void HandleOnInteractionEnd()
     {
-        LogMessage($"OnPlayerInteracted {false}");
+        // LogMessage($"OnPlayerInteracted {false}");
         OnPlayerInteracted?.Invoke(false);
     }
 
     private void HandleOnCombatTriggered(CombatPartyHandler enemy)
     {
         OnPlayerTriggerCombat?.Invoke(enemy);
+    }
+    #endregion
+
+    #region Cutscene Control
+    /// <summary>
+    /// Toggles between normal player input and external (cutscene-driven) control.
+    /// Reuses the same movement/jump physics either way - only the source of intent changes.
+    /// </summary>
+    public void SetCutsceneControl(bool active)
+    {
+        isExternallyDriven = active;
+        SubscribeInput(!active);
+
+        if (active)
+        {
+            moveInput = Vector2.zero;
+            jumpHeldLastFrame = false;
+        }
+    }
+
+    public void DriveExternalMove(float horizontal)
+    {
+        moveInput.x = horizontal;
+    }
+
+    public void RequestExternalJump()
+    {
+        if (isGrounded)
+        {
+            jumpRequested = true;
+        }
     }
     #endregion
 
@@ -324,6 +381,6 @@ public class PlayerExploration : MonoBehaviour
 
     private void LogMessage(string msg)
     {
-        // Debug.Log($"[PlayerExploration] {msg}");
+        Debug.Log($"[PlayerExploration] {msg}");
     }
 }

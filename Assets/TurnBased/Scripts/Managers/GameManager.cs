@@ -7,6 +7,7 @@ public enum GameState
 {
     Exploration,
     DialogueCutscene,
+    Cutscene,
     Combat
 }
 
@@ -20,13 +21,15 @@ public class GameManager : MonoBehaviour
     [Header("Current State (read-only at runtime)")]
     [SerializeField] private GameState currentState = GameState.Exploration;
     private GameState previousState;
+    private GameState stateBeforeCutscene;
     public bool IsExploration => currentState == GameState.Exploration;
-    public bool IsDialogueOrCutscene => currentState == GameState.DialogueCutscene;
+    public bool IsDialogueOrCutscene => currentState == GameState.DialogueCutscene || currentState == GameState.Cutscene;
     public bool IsCombat => currentState == GameState.Combat;
 
     [Header("Level References")]
     [SerializeField] private CameraTransitionController cameraTransitionController;
     [SerializeField] private CombatManager combat;
+    [SerializeField] private CutsceneManager cutscene;
     [SerializeField] private CanvasManager canvas;
     [SerializeField] private PlayerManager player;
     private PlayerInputAction playerControls;
@@ -57,9 +60,14 @@ public class GameManager : MonoBehaviour
 
         player.Init(playerControls);
         player.OnPlayerInteracted = (isInteracting) => HandleOnPlayerInteracted(isInteracting);
+        player.OnPlayerInteractableUpdate = (interactable) => HandleOnPlayerInteractableUpdate(interactable);
         player.OnPlayerTriggerCombat = (enemyParty) => HandleOnPlayerEnterCombat(enemyParty);
 
-        canvas.Init(playerControls, cameraTransitionController.mainCamera);
+        cutscene.Init(player.exploration);
+        cutscene.OnCutsceneStarted += HandleOnCutsceneStarted;
+        cutscene.OnCutsceneEnded += HandleOnCutsceneEnded;
+
+        canvas.Init(playerControls, cameraTransitionController.mainCamera, cutscene);
     }
 
     private void OnInputEscape(InputAction.CallbackContext ctx)
@@ -69,6 +77,7 @@ public class GameManager : MonoBehaviour
 
     private void HandleOnPlayerInteracted(bool isInteracting)
     {
+        canvas.worldCanvas.ShowInteractablePrompt(false);
         // LogMessage($"HandleOnPlayerInteracted {isInteracting}");
         if (isInteracting)
         {
@@ -81,6 +90,11 @@ public class GameManager : MonoBehaviour
                 RevertToPreviousState();
             }
         }
+    }
+
+    private void HandleOnPlayerInteractableUpdate(Interactables interactable)
+    {
+        canvas.worldCanvas.ShowInteractablePrompt(interactable != null, interactable == null ? null : interactable.canvasTarget);
     }
 
     private void HandleOnPlayerEnterCombat(CombatPartyHandler enemyParty)
@@ -99,6 +113,20 @@ public class GameManager : MonoBehaviour
     {
 
         ChangeState(GameState.Exploration);
+    }
+
+    private void HandleOnCutsceneStarted()
+    {
+        // Cutscene can start mid-dialogue-ping-pong in theory, but in practice starts from
+        // Exploration. Captured explicitly rather than reusing previousState, since previousState
+        // gets overwritten by any TriggerDialog steps that run during the cutscene itself.
+        stateBeforeCutscene = currentState;
+        ChangeState(GameState.Cutscene);
+    }
+
+    private void HandleOnCutsceneEnded()
+    {
+        ChangeState(stateBeforeCutscene);
     }
 
     private void SetPlatformMatsAlpha(float alpha)
@@ -137,7 +165,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Convenience for systems ending their own flow (e.g. a cutscene finishing) that just
+    /// Convenience for systems ending their own flow (e.g. a dialogue finishing) that just
     /// want to hand control back to whatever was happening before they took over.
     /// </summary>
     public void RevertToPreviousState()
@@ -155,6 +183,9 @@ public class GameManager : MonoBehaviour
                 break;
 
             case GameState.DialogueCutscene:
+                break;
+
+            case GameState.Cutscene:
                 break;
 
             case GameState.Combat:
@@ -176,6 +207,9 @@ public class GameManager : MonoBehaviour
             case GameState.DialogueCutscene:
                 break;
 
+            case GameState.Cutscene:
+                break;
+
             case GameState.Combat:
                 break;
         }
@@ -194,6 +228,7 @@ public class GameManager : MonoBehaviour
             GameState.Exploration => playerControls.Exploration.Get(),
             GameState.DialogueCutscene => playerControls.Dialogue.Get(),
             GameState.Combat => playerControls.Combat.Get(),
+            GameState.Cutscene => null, // intentional: no map enabled, player has zero input during playback
             _ => null,
         };
     }

@@ -6,9 +6,11 @@ using UnityEngine.InputSystem;
 public class CanvasManager : MonoBehaviour
 {
     [SerializeField] private CombatCanvasManager _combatCanvas; public CombatCanvasManager combatCanvas => _combatCanvas;
+    [SerializeField] private WorldCanvasManager _worldCanvas; public WorldCanvasManager worldCanvas => _worldCanvas;
     [SerializeField] private NavigableMenuDialog menuDialog;
     [SerializeField] private SayDialog sayDialog;
     [SerializeField] private DialogInput dialogInput;
+    [SerializeField] private CutsceneLetterboxUI _cutsceneLetterbox;
 
     private PlayerInputAction playerControls;
     private Vector2 selectionInput;
@@ -24,12 +26,14 @@ public class CanvasManager : MonoBehaviour
         SubscribeControls(false);
     }
 
-    public void Init(PlayerInputAction playerControls, Camera mainCam)
+    public void Init(PlayerInputAction playerControls, Camera mainCam, CutsceneManager cutscene)
     {
         this.playerControls = playerControls;
         SubscribeControls(true);
 
         _combatCanvas.Init(mainCam);
+        _worldCanvas.Init(mainCam);
+        _cutsceneLetterbox.Init(cutscene);
     }
 
     private void SubscribeControls(bool isSubscribe)

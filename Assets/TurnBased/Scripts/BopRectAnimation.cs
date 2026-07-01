@@ -9,8 +9,7 @@ public class BopRectAnimation : MonoBehaviour
     [Header("Bop Settings")]
     [SerializeField] private float bopHeight = 15f;
     [SerializeField] private float duration = 0.6f;
-    [SerializeField] private Ease easeUp = Ease.InOutSine;
-    [SerializeField] private Ease easeDown = Ease.InOutSine;
+    [SerializeField] private Ease ease = Ease.InOutSine;
 
     private Vector2 originalPosition;
     private Tween bopTween;
@@ -37,7 +36,7 @@ public class BopRectAnimation : MonoBehaviour
 
         bopTween = target
             .DOAnchorPosY(originalPosition.y + bopHeight, duration)
-            .SetEase(easeUp)
+            .SetEase(ease)
             .SetLoops(-1, LoopType.Yoyo)
             .SetId(target); // useful for targeted Kill() calls later
     }

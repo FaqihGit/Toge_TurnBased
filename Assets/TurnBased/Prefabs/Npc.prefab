@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4813390285628127739
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 795097314492354439}
+  m_Layer: 8
+  m_Name: CanvasTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &795097314492354439
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4813390285628127739}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5609942811596728160}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4911377701653156333
 GameObject:
   m_ObjectHideFlags: 0
@@ -503,6 +534,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8434964303713986728}
+  - {fileID: 795097314492354439}
   - {fileID: 3992362599085194317}
   - {fileID: 2850760376737592482}
   - {fileID: 3014810566271226340}
@@ -607,6 +639,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 25ee62466b00f684bb4f9e18fd02ec48, type: 2}
   - {fileID: 11400000, guid: 0f751b14d96892b4cadddf423cc96128, type: 2}
   npcFlowchart: {fileID: 7546855783286970587}
+  _canvasTarget: {fileID: 795097314492354439}
   npcCharacter: {fileID: 8944697830798066471}
   combatParty: {fileID: 3875293429618632751}
 --- !u!114 &8944697830798066471
@@ -703,6 +736,12 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  _thrustDistance: 0.6
+  _thrustOutDuration: 0.12
+  _thrustReturnDuration: 0.18
+  _hitShakeStrength: 0.15
+  _hitShakeVibrato: 20
+  _hitShakeDuration: 0.3
 --- !u!1001 &1944284776650419054
 PrefabInstance:
   m_ObjectHideFlags: 0

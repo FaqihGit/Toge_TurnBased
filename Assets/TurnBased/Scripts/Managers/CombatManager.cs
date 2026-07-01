@@ -13,25 +13,25 @@ public class CombatManager : MonoBehaviour
     private readonly List<CombatUnit> playerUnits = new();
     private readonly List<CombatUnit> enemyUnits = new();
     private readonly List<CombatUnit> allUnits = new();
-    private readonly List<CombatUnitSnapshot> preCombatSnapshots = new();
 
     private readonly CombatResolver combatResolver = new(MaxEnergy);
     private readonly CombatTargetSelector targetSelector = new();
     private readonly EnemyCombatAI enemyAI = new();
+    private readonly CombatTurnOrder turnOrder = new();
+    private readonly CombatFlowchartHandler flowchartHandler = new();
+    private readonly CombatLifecycleController lifecycle = new();
 
     [Header("Enemy AI")]
     [Tooltip("Pure pacing — lets the player read the enemy's turn before it resolves. 0 = instant.")]
     [SerializeField] private float enemyActionDelay = 0.6f;
+    [Tooltip("Pause after impact so the shake/return-thrust reads before continuing.")]
+    [SerializeField] private float _postActionSettle = 0.15f;
 
-    private float turnThreshold;
     private CombatUnit currentActor;
     private bool isCombatActive;
     private bool awaitingAction;
+    private bool isResolvingAction;
 
-    // ---------------------------------------------------------------------
-    // Targeting sub-phase (visual selection of a target for the chosen action)
-    // is owned by targetSelector — see CombatTargetSelector.cs.
-    // ---------------------------------------------------------------------
     private CombatPartyHandler playerPartyHandler;
     private CombatPartyHandler enemyPartyHandler;
 
@@ -40,9 +40,7 @@ public class CombatManager : MonoBehaviour
     public IReadOnlyList<CombatUnit> EnemyUnits => enemyUnits;
     public bool IsCombatActive => isCombatActive;
 
-    /// Fired when a unit's turn begins. Listeners (PlayerInputRouter, an AI
-    /// controller, UI) decide what happens next and call SubmitAction /
-    /// SubmitSkip back in — CombatManager never reaches out to them.
+
     public event Action<CombatUnit> OnTurnStarted;
 
     /// Fired once when the encounter ends in victory (true) or defeat (false).
@@ -73,6 +71,12 @@ public class CombatManager : MonoBehaviour
         targetSelector.OnTargetsConfirmed += HandleTargetsConfirmed;
         targetSelector.OnTargetingCancelled += HandleTargetingCancelled;
 
+        flowchartHandler.Init(combatFlowchart);
+        flowchartHandler.OnActionChosen += BeginTargeting;
+
+        lifecycle.OnCombatEnded += HandleCombatEnded;
+        lifecycle.OnEscaped += HandleEscaped;
+
         SubscribeControls(true);
     }
 
@@ -92,7 +96,6 @@ public class CombatManager : MonoBehaviour
         playerUnits.Clear();
         enemyUnits.Clear();
         allUnits.Clear();
-        preCombatSnapshots.Clear();
 
         BuildParty(playerParty, UnitFactionEnum.Player, playerUnits);
         BuildParty(enemyParty, UnitFactionEnum.Enemies, enemyUnits);
@@ -109,18 +112,11 @@ public class CombatManager : MonoBehaviour
 
         // Snapshot is captured AFTER the 1 HP correction above, so Escape can
         // never roll a unit back into a lethal state.
-        foreach (var u in playerUnits)
-            preCombatSnapshots.Add(u.CaptureSnapshot());
+        lifecycle.CaptureSnapshots(playerUnits);
 
         // GDD 3.1: threshold = average Speed of all living units, fixed for
         // the whole encounter.
-        turnThreshold = 0f;
-        foreach (var u in allUnits)
-            turnThreshold += u.speed;
-        turnThreshold /= Mathf.Max(1, allUnits.Count);
-
-        foreach (var u in allUnits)
-            u.speedBank = u.speed;
+        turnOrder.Init(allUnits);
 
         combatCanvas.BindParty(playerUnits, playerPartyHandler, MaxEnergy);
         combatCanvas.BindParty(enemyUnits, enemyPartyHandler, MaxEnergy);
@@ -144,49 +140,15 @@ public class CombatManager : MonoBehaviour
 
     #region Turn Handler
     // ---------------------------------------------------------------------
-    // Turn order — Speed Bank (GDD 3)
+    // Turn order — Speed Bank (GDD 3) computation lives in turnOrder;
+    // this just starts whatever it returns.
     // ---------------------------------------------------------------------
 
     private void AdvanceTurn()
     {
-        while (true)
-        {
-            CombatUnit best = null;
-
-            foreach (var u in allUnits)
-            {
-                if (u.IsDead) continue;
-                if (u.speedBank < turnThreshold) continue;
-
-                if (best == null || u.speedBank > best.speedBank)
-                {
-                    best = u;
-                }
-                else if (Mathf.Approximately(u.speedBank, best.speedBank))
-                {
-                    // GDD 3.4: tie -> player side priority
-                    if (u.faction == UnitFactionEnum.Player && best.faction != UnitFactionEnum.Player)
-                        best = u;
-                }
-            }
-
-            if (best != null)
-            {
-                best.speedBank -= turnThreshold;
-                StartTurn(best);
-                return;
-            }
-
-            bool anyAlive = false;
-            foreach (var u in allUnits)
-            {
-                if (u.IsDead) continue;
-                anyAlive = true;
-                u.speedBank += u.speed; // passive fill step — essential, see GDD 3
-            }
-
-            if (!anyAlive) return; // CheckEncounterEnd should already have caught this
-        }
+        var next = turnOrder.GetNextActor(allUnits);
+        if (next != null)
+            StartTurn(next);
     }
 
     private void StartTurn(CombatUnit actor)
@@ -228,17 +190,11 @@ public class CombatManager : MonoBehaviour
             return;
         }
 
-        // Highlight whose turn it is on their own party handler while the
-        // action menu is open. Reused for every action this turn (GDD 1:
-        // turn = multi-action window), not just the first.
-        var actorHandler = currentActor.faction == UnitFactionEnum.Player ? playerPartyHandler : enemyPartyHandler;
-        int actorIdx = targetSelector.GetPartySlotIndex(currentActor);
-
         combatCanvas.SetIndicator(currentActor);
         combatCanvas.ShowIndicator(true);
 
-        SetActionOption(currentActor, currentActor.source.combatActionList);
-        combatFlowchart.ExecuteBlock("TriggerAction");
+        flowchartHandler.SetActionOption(currentActor, currentActor.source.combatActionList);
+        flowchartHandler.TriggerActionBlock();
     }
 
     private void EndTurn()
@@ -262,7 +218,7 @@ public class CombatManager : MonoBehaviour
     /// actions, pass a subset of GetValidTargets(currentActor, action).
     public bool SubmitAction(CombatActionSO action, List<CombatUnit> targets)
     {
-        if (!isCombatActive || !awaitingAction || currentActor == null) return false;
+        if (!isCombatActive || !awaitingAction || isResolvingAction || currentActor == null) return false;
         if (action == null || action.energyCost > currentActor.energy) return false;
 
         var validPool = GetValidTargets(currentActor, action);
@@ -288,50 +244,71 @@ public class CombatManager : MonoBehaviour
 
         LogMessage($"SubmitAction {currentActor.source.name} does {action.name}");
         currentActor.energy -= action.energyCost;
-        combatCanvas.RefreshUnit(currentActor, MaxEnergy); // NEW
-        combatResolver.ResolveAction(currentActor, action, resolvedTargets);
+        combatCanvas.RefreshUnit(currentActor, MaxEnergy);
+        HideAllIndicators();
 
-        // CombatResolver has no UI reference, so the caller (here) refreshes
-        // every target it just resolved against.
-        foreach (var target in resolvedTargets)
-            combatCanvas.RefreshUnit(target, MaxEnergy);
+        combatCanvas.ShowAction(currentActor, action, resolvedTargets);
 
-        if (CheckEncounterEnd()) return true;
-
-        if (!combatResolver.HasAffordableAction(currentActor))
-            EndTurn();
-        else
-            PromptAction(); // GDD 1: same actor can keep acting this turn while they can afford to.
+        isResolvingAction = true;
+        StartCoroutine(PlayActionAndResolve(currentActor, action, resolvedTargets));
 
         return true;
     }
 
+    private System.Collections.IEnumerator PlayActionAndResolve(
+    CombatUnit actor, CombatActionSO action, List<CombatUnit> resolvedTargets)
+    {
+        var actorParty = actor.faction == UnitFactionEnum.Player ? playerPartyHandler : enemyPartyHandler;
+        var actorList = actor.faction == UnitFactionEnum.Player ? playerUnits : enemyUnits;
+        bool actorThrustsBackward = actor.faction == UnitFactionEnum.Enemies;
+        int actorIdx = actorList.IndexOf(actor);
+
+        bool impactReached = false;
+        actorParty.PlayAttackThrust(actorIdx, actorThrustsBackward, onPeak: () => impactReached = true);
+
+        yield return new WaitUntil(() => impactReached);
+
+        // Damage/heal/buff math lands exactly when the thrust hits its peak.
+        combatResolver.ResolveAction(actor, action, resolvedTargets);
+        combatCanvas.RefreshUnit(actor, MaxEnergy);
+
+        foreach (var target in resolvedTargets)
+        {
+            combatCanvas.RefreshUnit(target, MaxEnergy);
+
+            if (target == actor) continue; // avoid fighting the thrust tween on self-target
+
+            var targetList = target.faction == UnitFactionEnum.Player ? playerUnits : enemyUnits;
+            var targetParty = target.faction == UnitFactionEnum.Player ? playerPartyHandler : enemyPartyHandler;
+            targetParty.PlayHitShake(targetList.IndexOf(target));
+        }
+
+        // Let the return-thrust and shake read before the menu reopens / turn advances.
+        yield return new WaitForSeconds(Mathf.Max(0f, _postActionSettle));
+
+        isResolvingAction = false;
+
+        if (CheckEncounterEnd()) yield break;
+
+        if (!combatResolver.HasAffordableAction(actor))
+            EndTurn();
+        else
+            PromptAction();
+    }
+
     public void SubmitSkip()
     {
-        if (!isCombatActive || !awaitingAction) return;
+        if (!isCombatActive || !awaitingAction || isResolvingAction) return;
+        combatCanvas.ShowSkip(currentActor);
         EndTurn();
     }
 
-    /// GDD 10: always available, no cost, 100% success — voids the encounter
-    /// entirely and restores the player party to its pre-combat snapshot.
+    /// GDD 10: always available, no cost, 100% success — see
+    /// CombatLifecycleController.Escape for the rollback itself.
     public void RequestEscape()
     {
         if (!isCombatActive) return;
-
-        foreach (var snap in preCombatSnapshots)
-            snap.unit.RestoreSnapshot(snap);
-
-        foreach (var u in playerUnits)
-            u.CommitToSource();
-
-        isCombatActive = false;
-        awaitingAction = false;
-        targetSelector.ForceClose();
-        HideAllIndicators();
-        enemyPartyHandler.ShowParty(false);
-        currentActor = null;
-
-        OnEscaped?.Invoke();
+        lifecycle.Escape(playerUnits);
     }
 
     public List<CombatUnit> GetValidTargets(CombatUnit actor, CombatActionSO action)
@@ -432,23 +409,15 @@ public class CombatManager : MonoBehaviour
     #region Win/Loss
 
     // ---------------------------------------------------------------------
-    // Win / loss
+    // Win/loss detection lives in lifecycle; this checks it and reacts.
     // ---------------------------------------------------------------------
 
     private bool CheckEncounterEnd()
     {
-        bool playerAlive = false;
-        foreach (var u in playerUnits) if (!u.IsDead) { playerAlive = true; break; }
-
-        bool enemyAlive = false;
-        foreach (var u in enemyUnits) if (!u.IsDead) { enemyAlive = true; break; }
-
-        if (!enemyAlive) { EndCombat(true); return true; }
-        if (!playerAlive) { EndCombat(false); return true; }
-        return false;
+        return lifecycle.CheckEncounterEnd(playerUnits, enemyUnits);
     }
 
-    private void EndCombat(bool victory)
+    private void HandleCombatEnded(bool victory)
     {
         isCombatActive = false;
         awaitingAction = false;
@@ -458,79 +427,34 @@ public class CombatManager : MonoBehaviour
         combatCanvas.ClearAll();
         currentActor = null;
 
-        if (victory)
-        {
-            foreach (var u in playerUnits)
-                u.CommitToSource();
-        }
-        // Defeat outcome (game over / retry flow) is left for GameManager.
-
         OnCombatEnded?.Invoke(victory);
     }
+
+    private void HandleEscaped()
+    {
+        isCombatActive = false;
+        awaitingAction = false;
+        targetSelector.ForceClose();
+        HideAllIndicators();
+        enemyPartyHandler.ShowParty(false);
+        currentActor = null;
+
+        OnEscaped?.Invoke();
+    }
+
     #endregion
 
     #region Flowchart Handler
     public void SubmitFlowchartAction()
     {
-        LogMessage($"SubmitFlowchartAction isCombatActive {isCombatActive} awaitingAction {awaitingAction} awaitingTarget {targetSelector.IsAwaitingTarget} currentActor {currentActor}");
-        if (!isCombatActive || !awaitingAction || targetSelector.IsAwaitingTarget || currentActor == null) return;
-
-        int actionIdx = combatFlowchart.GetIntegerVariable("ActionIdx");
-        var actionList = currentActor.source.combatActionList;
-        LogMessage($"SubmitFlowchartAction actionIdx {actionIdx}");
-        if (actionIdx < 0 || actionIdx >= actionList.Count) return;
-
-        var action = actionList[actionIdx];
-        LogMessage($"SubmitFlowchartAction action.energyCost {action.energyCost} currentActor.energy {currentActor.energy}");
-        if (action.energyCost > currentActor.energy) return;
-
-        BeginTargeting(action);
-    }
-
-    private static readonly string[] OptionVariables =
-    {
-        "OptionA",
-        "OptionB",
-        "OptionC",
-        "OptionD"
-    };
-
-    private static readonly string[] InteractableVariables =
-    {
-        "InteractableA",
-        "InteractableB",
-        "InteractableC",
-        "InteractableD"
-    };
-
-    public void SetActionOption(CombatUnit unit, List<CombatActionSO> actionList)
-    {
-        for (int i = 0; i < OptionVariables.Length; i++)
-        {
-            bool hasAction = i < actionList.Count;
-
-            combatFlowchart.SetStringVariable(
-                OptionVariables[i],
-                hasAction
-                    ? ActionStringBuilder(actionList[i].name, actionList[i].energyCost)
-                    : "Unavailable");
-
-            combatFlowchart.SetBooleanVariable(
-                InteractableVariables[i],
-                hasAction &&
-                unit.energy >= actionList[i].energyCost);
-        }
-    }
-
-    private static string ActionStringBuilder(string name, int energy)
-    {
-        return $"{name}\n E:{energy}";
+        bool canAct = isCombatActive && awaitingAction && !targetSelector.IsAwaitingTarget;
+        flowchartHandler.SubmitFlowchartAction(canAct, currentActor);
     }
 
     #endregion
 
     private void LogMessage(string msg)
     {
-        Debug.Log($"[CombatManager] {msg}");
+        // Debug.Log($"[CombatManager] {msg}");
     }
 }

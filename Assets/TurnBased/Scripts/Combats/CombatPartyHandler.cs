@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
@@ -17,9 +18,19 @@ public class CombatPartyHandler : MonoBehaviour
     [SerializeField] private float _undergroundOffset = 2f;
     [SerializeField] private AnimationCurve _showEase = AnimationCurve.EaseInOut(0, 0, 1, 1);
     [SerializeField] private AnimationCurve _hideEase = AnimationCurve.EaseInOut(0, 0, 1, 1);
-
     private float[] _restingYPositions;
     private Tween[] _activeTweens;
+
+    [Header("Action Feedback")]
+    [SerializeField] private float _thrustDistance = 0.6f;
+    [SerializeField] private float _thrustOutDuration = 0.12f;
+    [SerializeField] private float _thrustReturnDuration = 0.18f;
+    [SerializeField] private float _hitShakeStrength = 0.15f;
+    [SerializeField] private int _hitShakeVibrato = 20;
+    [SerializeField] private float _hitShakeDuration = 0.3f;
+    private Tween[] _actionTweens;
+    private Tween[] _shakeTweens;
+
 
     private Vector3 _worldMemberRestingPosition;
     private Tween _worldMemberTween;
@@ -35,6 +46,10 @@ public class CombatPartyHandler : MonoBehaviour
 
     void Awake()
     {
+        _activeTweens = new Tween[_partyVisualList.Count];
+        _restingYPositions = new float[_partyVisualList.Count];
+        _actionTweens = new Tween[_partyVisualList.Count];
+        _shakeTweens = new Tween[_partyVisualList.Count];
         _activeTweens = new Tween[_partyVisualList.Count];
         _restingYPositions = new float[_partyVisualList.Count];
 
@@ -281,10 +296,57 @@ public class CombatPartyHandler : MonoBehaviour
         return _partyVisualList[memberIdx].canvasTarget;
     }
 
+    // =========================
+    // ACTION FEEDBACK
+    // =========================
+
+    /// Short out-and-back thrust along X. isBackward=true for enemies (they
+    /// thrust toward negative X, i.e. toward the player side). onPeak fires
+    /// at the forward-most point — CombatManager resolves damage there so
+    /// the hit visually lands at the moment of impact.
+    public void PlayAttackThrust(int memberIdx, bool isBackward, Action onPeak = null, Action onComplete = null)
+    {
+        if (memberIdx < 0 || memberIdx >= _partyVisualList.Count) return;
+
+        Transform t = _partyVisualList[memberIdx].transform;
+        _actionTweens[memberIdx]?.Kill();
+
+        Vector3 origin = t.position;
+        float dir = isBackward ? -1f : 1f;
+        Vector3 peak = origin + new Vector3(_thrustDistance * dir, 0f, 0f);
+
+        Sequence seq = DOTween.Sequence();
+        seq.Append(t.DOMove(peak, _thrustOutDuration).SetEase(Ease.OutQuad));
+        seq.AppendCallback(() => onPeak?.Invoke());
+        seq.Append(t.DOMove(origin, _thrustReturnDuration).SetEase(Ease.InQuad));
+        seq.OnComplete(() => onComplete?.Invoke());
+
+        _actionTweens[memberIdx] = seq;
+    }
+
+    /// Small X-axis vibrate to indicate a unit is on the receiving end of
+    /// an action (damage, heal, buff — anything that targets it).
+    public void PlayHitShake(int memberIdx, Action onComplete = null)
+    {
+        if (memberIdx < 0 || memberIdx >= _partyVisualList.Count) return;
+
+        Transform t = _partyVisualList[memberIdx].transform;
+        _shakeTweens[memberIdx]?.Kill();
+
+        _shakeTweens[memberIdx] = t.DOShakePosition(
+                _hitShakeDuration,
+                strength: new Vector3(_hitShakeStrength, 0f, 0f),
+                vibrato: _hitShakeVibrato,
+                randomness: 0f,
+                fadeOut: true)
+            .OnComplete(() => onComplete?.Invoke());
+    }
+
     void OnDestroy()
     {
         _worldMemberTween?.Kill();
-        foreach (var tween in _activeTweens)
-            tween?.Kill();
+        foreach (var tween in _activeTweens) tween?.Kill();
+        foreach (var tween in _actionTweens) tween?.Kill();
+        foreach (var tween in _shakeTweens) tween?.Kill();
     }
 }

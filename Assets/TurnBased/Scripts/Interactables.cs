@@ -14,6 +14,7 @@ public class Interactables : MonoBehaviour
 
     [Header("Component References")]
     [SerializeField] private Flowchart npcFlowchart;
+    [SerializeField] private Transform _canvasTarget; public Transform canvasTarget => _canvasTarget;
     [SerializeField] private Character npcCharacter;
     [SerializeField] private CombatPartyHandler combatParty;
     private bool isInteracting;
