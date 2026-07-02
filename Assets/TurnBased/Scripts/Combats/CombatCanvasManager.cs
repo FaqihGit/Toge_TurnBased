@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
@@ -29,10 +30,19 @@ public class CombatCanvasManager : MonoBehaviour
     [SerializeField] private RectTransform turnOrderPanel;
     [SerializeField] private CombatTurnOrderItemUI turnOrderItemPrefab;
     [SerializeField] private int maxTurnOrderShown = 5;
-
+    public int MaxTurnOrderShown => maxTurnOrderShown;
     private readonly List<CombatTurnOrderItemUI> turnOrderItems = new();
 
-    public int MaxTurnOrderShown => maxTurnOrderShown;
+    [Header("Confirmation Panel")]
+    [SerializeField] private GameObject confirmationPanel;
+    [SerializeField] private TMP_Text confirmationPromptText;
+    [SerializeField] private Button confirmationYesButton;
+    [SerializeField] private Button confirmationNoButton;
+
+
+    [Header("Escape")]
+    [SerializeField] private GameObject escapePanel;
+    [SerializeField] private Image escapeProgressImage;
 
     private Camera combatCamera;
 
@@ -46,8 +56,7 @@ public class CombatCanvasManager : MonoBehaviour
     {
         this.combatCamera = combatCamera;
 
-        actionPromptCanvasGroup.alpha = 0;
-        ShowIndicator(false);
+        ClearAll();
     }
 
     private void PositionIndicator()
@@ -155,16 +164,19 @@ public class CombatCanvasManager : MonoBehaviour
             if (i < upcoming.Count)
                 item.Init(upcoming[i]);
             else
-                item.SetEmpty(); // defensive: only hit if fewer alive units than maxShown
+                item.SetEmpty();
+
+            item.SetAlpha(i == 0 ? 1f : 0.5f);
         }
 
-        // Overflow slot: while combat is active the queue never truly ends
-        // (passive fill keeps it going), so show it whenever we have anything
-        // to display at all.
         var overflowItem = turnOrderItems[maxTurnOrderShown];
         bool showOverflow = upcoming.Count > 0;
         overflowItem.gameObject.SetActive(showOverflow);
-        if (showOverflow) overflowItem.SetEmpty();
+        if (showOverflow)
+        {
+            overflowItem.SetEmpty();
+            overflowItem.SetAlpha(1);
+        }
     }
 
     public void ClearAll()
@@ -175,9 +187,47 @@ public class CombatCanvasManager : MonoBehaviour
         activeUI.Clear();
         unitAnchors.Clear();
         indicatorTarget = null;
+        actionPromptCanvasGroup.alpha = 0;
+
         ShowIndicator(false);
+        ShowConfirmMenu(false);
+        ShowEscapePrompt(false);
 
         foreach (var item in turnOrderItems)
             if (item != null) item.gameObject.SetActive(false);
+    }
+
+    public void ShowConfirmMenu(bool isShow, string prompt = null, Action onConfirm = null, Action onCancel = null)
+    {
+        confirmationPanel.SetActive(isShow);
+        if (isShow)
+        {
+            confirmationPromptText.text = prompt;
+
+            confirmationYesButton.onClick.RemoveAllListeners();
+            confirmationYesButton.onClick.AddListener(() =>
+            {
+                ShowConfirmMenu(false);
+                onConfirm?.Invoke();
+            });
+
+            confirmationNoButton.onClick.RemoveAllListeners();
+            confirmationNoButton.onClick.AddListener(() =>
+            {
+                ShowConfirmMenu(false);
+                onCancel?.Invoke();
+            });
+        }
+    }
+
+    public void ShowEscapePrompt(bool isShow)
+    {
+        escapePanel.SetActive(isShow);
+        if (!isShow) SetEscapeProgress(0);
+    }
+
+    public void SetEscapeProgress(float progress)
+    {
+        escapeProgressImage.fillAmount = progress;
     }
 }

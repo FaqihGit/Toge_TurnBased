@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 public class CombatTurnOrderItemUI : MonoBehaviour
 {
+    [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private Image unitImage;
     [SerializeField] private TMP_Text unitName;
 
@@ -24,6 +25,11 @@ public class CombatTurnOrderItemUI : MonoBehaviour
             unitImage.overrideSprite = null;
             unitName.text = unitData.name;
         }
+    }
+
+    public void SetAlpha(float alpha)
+    {
+        canvasGroup.alpha = alpha;
     }
 
     public void SetEmpty()

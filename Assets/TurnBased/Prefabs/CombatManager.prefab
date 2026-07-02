@@ -135,7 +135,7 @@ MonoBehaviour:
     width: 1114
     height: 859
   selectedBlocks:
-  - {fileID: 7460317621818153474}
+  - {fileID: 1886944238322171148}
   selectedCommands: []
   variables:
   - {fileID: 6012670640609233176}
@@ -345,7 +345,7 @@ MonoBehaviour:
   targetBlock: {fileID: 1886944238322171148}
   hideIfVisited: 0
   interactable:
-    booleanRef: {fileID: 6964505253514658659}
+    booleanRef: {fileID: 0}
     booleanVal: 1
   setMenuDialog: {fileID: 0}
   hideThisOption:
@@ -370,7 +370,7 @@ MonoBehaviour:
   targetBlock: {fileID: 5482865661918341592}
   hideIfVisited: 0
   interactable:
-    booleanRef: {fileID: 2104164603483292012}
+    booleanRef: {fileID: 0}
     booleanVal: 1
   setMenuDialog: {fileID: 0}
   hideThisOption:

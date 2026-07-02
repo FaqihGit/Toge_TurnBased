@@ -31,6 +31,7 @@ public class CombatManager : MonoBehaviour
     private bool isCombatActive;
     private bool awaitingAction;
     private bool isResolvingAction;
+    private bool awaitingConfirmation;
 
     private CombatPartyHandler playerPartyHandler;
     private CombatPartyHandler enemyPartyHandler;
@@ -116,16 +117,16 @@ public class CombatManager : MonoBehaviour
         // never roll a unit back into a lethal state.
         lifecycle.CaptureSnapshots(playerUnits);
 
-        // GDD 3.1: threshold = average Speed of all living units, fixed for
-        // the whole encounter.
         turnOrder.Init(allUnits);
 
+        combatCanvas.ShowEscapePrompt(true);
         combatCanvas.BindParty(playerUnits, playerPartyHandler, MaxEnergy);
         combatCanvas.BindParty(enemyUnits, enemyPartyHandler, MaxEnergy);
 
         targetSelector.BindParties(playerUnits, enemyUnits, playerPartyHandler, enemyPartyHandler);
 
         isCombatActive = true;
+        awaitingConfirmation = false;
         AdvanceTurn();
     }
 
@@ -141,10 +142,6 @@ public class CombatManager : MonoBehaviour
 
 
     #region Turn Handler
-    // ---------------------------------------------------------------------
-    // Turn order — Speed Bank (GDD 3) computation lives in turnOrder;
-    // this just starts whatever it returns.
-    // ---------------------------------------------------------------------
 
     private void AdvanceTurn()
     {
@@ -230,15 +227,9 @@ public class CombatManager : MonoBehaviour
 
     #region External Calls
 
-    // ---------------------------------------------------------------------
-    // External API — called by PlayerInputRouter, an AI controller, etc.
-    // ---------------------------------------------------------------------
-
-    /// targets is ignored for party-wide actions. For single/limited-target
-    /// actions, pass a subset of GetValidTargets(currentActor, action).
     public bool SubmitAction(CombatActionSO action, List<CombatUnit> targets)
     {
-        if (!isCombatActive || !awaitingAction || isResolvingAction || currentActor == null) return false;
+        if (!isCombatActive || !awaitingAction || isResolvingAction || awaitingConfirmation || currentActor == null) return false;
         if (action == null || action.energyCost > currentActor.energy) return false;
 
         var validPool = GetValidTargets(currentActor, action);
@@ -288,7 +279,6 @@ public class CombatManager : MonoBehaviour
 
         yield return new WaitUntil(() => impactReached);
 
-        // Damage/heal/buff math lands exactly when the thrust hits its peak.
         combatResolver.ResolveAction(actor, action, resolvedTargets);
         combatCanvas.RefreshUnit(actor, MaxEnergy);
 
@@ -296,14 +286,13 @@ public class CombatManager : MonoBehaviour
         {
             combatCanvas.RefreshUnit(target, MaxEnergy);
 
-            if (target == actor) continue; // avoid fighting the thrust tween on self-target
+            if (target == actor) continue;
 
             var targetList = target.faction == UnitFactionEnum.Player ? playerUnits : enemyUnits;
             var targetParty = target.faction == UnitFactionEnum.Player ? playerPartyHandler : enemyPartyHandler;
             targetParty.PlayHitShake(targetList.IndexOf(target));
         }
 
-        // Let the return-thrust and shake read before the menu reopens / turn advances.
         yield return new WaitForSeconds(Mathf.Max(0f, _postActionSettle));
 
         isResolvingAction = false;
@@ -318,7 +307,7 @@ public class CombatManager : MonoBehaviour
 
     public void SubmitSkip()
     {
-        if (!isCombatActive || !awaitingAction || isResolvingAction) return;
+        if (!isCombatActive || !awaitingAction || isResolvingAction || awaitingConfirmation) return;
         combatCanvas.ShowSkip(currentActor);
         EndTurn();
     }
@@ -330,6 +319,65 @@ public class CombatManager : MonoBehaviour
         if (!isCombatActive) return;
         lifecycle.Escape(playerUnits);
     }
+
+    #region Escape Input Confirmation
+
+    /// Sole handler for the General.Escape "tap" input during combat — see
+    /// HandleEscapeTapped/SubscribeControls. CombatTargetSelector no longer
+    /// listens to Escape itself; it only exposes CancelTargeting() as a
+    /// method. That makes this the single place that decides what a tap
+    /// means, so the two outcomes stay mutually exclusive:
+    ///   - Targeting open (targetSelector.IsAwaitingTarget) → cancel it.
+    ///   - Otherwise, action menu showing → confirm-to-skip the turn.
+    public void RequestSkipConfirm()
+    {
+        if (!isCombatActive || isResolvingAction || awaitingConfirmation || currentActor == null) return;
+
+        if (targetSelector.IsAwaitingTarget)
+        {
+            targetSelector.CancelTargeting();
+            return;
+        }
+
+        if (!awaitingAction || currentActor.faction != UnitFactionEnum.Player) return;
+
+        awaitingConfirmation = true;
+        combatCanvas.ShowConfirmMenu(true,
+            "Skip turn?",
+            onConfirm: () =>
+            {
+                awaitingConfirmation = false;
+                SubmitSkip();
+            },
+            onCancel: () =>
+            {
+                awaitingConfirmation = false;
+                combatCanvas.ShowConfirmMenu(false);
+            });
+    }
+
+    /// Hold on the general Escape input during combat. GDD 10: always
+    /// available regardless of whose turn it is.
+    public void RequestEscapeConfirm()
+    {
+        if (!isCombatActive || awaitingConfirmation) return;
+
+        awaitingConfirmation = true;
+        combatCanvas.ShowConfirmMenu(true,
+            "Escape battle?",
+            onConfirm: () =>
+            {
+                awaitingConfirmation = false;
+                RequestEscape();
+            },
+            onCancel: () =>
+            {
+                awaitingConfirmation = false;
+                combatCanvas.ShowConfirmMenu(false);
+            });
+    }
+
+    #endregion
 
     public List<CombatUnit> GetValidTargets(CombatUnit actor, CombatActionSO action)
     {
@@ -363,12 +411,6 @@ public class CombatManager : MonoBehaviour
 
     #region Targeting
 
-    // ---------------------------------------------------------------------
-    // Target selection is delegated to targetSelector (CombatTargetSelector.cs)
-    // — input subscriptions, cursor state, and indicator visuals all live
-    // there. CombatManager only starts it and reacts to its two outcomes.
-    // ---------------------------------------------------------------------
-
     private void BeginTargeting(CombatActionSO action)
     {
         var validTargets = GetValidTargets(currentActor, action);
@@ -393,13 +435,6 @@ public class CombatManager : MonoBehaviour
     #endregion
 
     #region Enemy AI
-
-    // ---------------------------------------------------------------------
-    // Enemy turns are resolved by enemyAI (plain C# class, GDD §11). It only
-    // receives a snapshot of state via arguments and returns a Decision —
-    // CombatManager remains the only thing that calls SubmitAction/SubmitSkip
-    // and the only thing that mutates combat state.
-    // ---------------------------------------------------------------------
 
     private System.Collections.IEnumerator EnemyTurnRoutine()
     {
@@ -431,9 +466,6 @@ public class CombatManager : MonoBehaviour
 
         if (!SubmitAction(decision.action, decision.targets))
         {
-            // Defensive fallback — should not happen since the AI only chose
-            // from actor's own affordable/valid pool, but never leave an enemy
-            // turn stuck open.
             LogMessage($"EnemyCombatAI returned an action that SubmitAction rejected ({decision.action?.name}); skipping turn.");
             SubmitSkip();
         }
@@ -443,10 +475,6 @@ public class CombatManager : MonoBehaviour
 
     #region Win/Loss
 
-    // ---------------------------------------------------------------------
-    // Win/loss detection lives in lifecycle; this checks it and reacts.
-    // ---------------------------------------------------------------------
-
     private bool CheckEncounterEnd()
     {
         return lifecycle.CheckEncounterEnd(playerUnits, enemyUnits);
@@ -454,27 +482,31 @@ public class CombatManager : MonoBehaviour
 
     private void HandleCombatEnded(bool victory)
     {
-        isCombatActive = false;
-        awaitingAction = false;
-        targetSelector.ForceClose();
-        HideAllIndicators();
-        enemyPartyHandler.ShowParty(false);
-        combatCanvas.ClearAll();
-        currentActor = null;
-
+        WrapUpCombat();
         OnCombatEnded?.Invoke(victory);
     }
 
     private void HandleEscaped()
     {
+        WrapUpCombat();
+        OnEscaped?.Invoke();
+    }
+
+    private void WrapUpCombat()
+    {
         isCombatActive = false;
         awaitingAction = false;
+        awaitingConfirmation = false;
+
         targetSelector.ForceClose();
         HideAllIndicators();
+        combatCanvas.ShowConfirmMenu(false);
         enemyPartyHandler.ShowParty(false);
+        combatCanvas.ClearAll();
+        combatFlowchart.StopAllBlocks();
+
         currentActor = null;
 
-        OnEscaped?.Invoke();
     }
 
     #endregion
@@ -482,7 +514,7 @@ public class CombatManager : MonoBehaviour
     #region Flowchart Handler
     public void SubmitFlowchartAction()
     {
-        bool canAct = isCombatActive && awaitingAction && !targetSelector.IsAwaitingTarget;
+        bool canAct = isCombatActive && awaitingAction && !targetSelector.IsAwaitingTarget && !awaitingConfirmation;
         flowchartHandler.SubmitFlowchartAction(canAct, currentActor);
     }
 

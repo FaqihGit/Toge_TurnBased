@@ -36,6 +36,7 @@ public class Interactables : MonoBehaviour
 
     public bool Interact(UnityAction OnEndDialogCallback)
     {
+        Init();
         LogMessage($"Interacted");
         if (npcFlowchart)
         {

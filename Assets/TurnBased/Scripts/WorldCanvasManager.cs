@@ -22,9 +22,9 @@ public class WorldCanvasManager : MonoBehaviour
     public void ShowInteractablePrompt(bool isShow, Transform target = null)
     {
         // Debug.Log($"ShowInteractablePrompt {isShow} target {target}");
-        if (isShow && target)
+        if (isShow)
         {
-            targetInteractable = target;
+            if (target) targetInteractable = target;
             interactablePrompt.gameObject.SetActive(true);
         }
         else

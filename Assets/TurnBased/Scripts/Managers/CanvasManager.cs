@@ -2,11 +2,13 @@ using System;
 using Fungus;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class CanvasManager : MonoBehaviour
 {
-
     public Action<int> OnMenuOptionSelection;
+
+    [SerializeField] private Image escapeHoldImage;
 
     [Header("Component References")]
     [SerializeField] private CombatCanvasManager _combatCanvas; public CombatCanvasManager combatCanvas => _combatCanvas;
@@ -34,6 +36,7 @@ public class CanvasManager : MonoBehaviour
     {
         this.playerControls = playerControls;
         SubscribeControls(true);
+        ShowFungus(false);
 
         _combatCanvas.Init(mainCam);
         _worldCanvas.Init(mainCam);
@@ -58,6 +61,17 @@ public class CanvasManager : MonoBehaviour
 
             playerControls.Combat.Selection.performed += HandleOnSelection;
             playerControls.Combat.Select.performed += HandleOnSelect;
+        }
+    }
+
+    public void ShowFungus(bool isShow)
+    {
+        sayDialog.SetActive(isShow);
+        menuDialog.SetActive(isShow);
+        if (!isShow)
+        {
+            sayDialog.Stop();
+            menuDialog.Clear();
         }
     }
 
@@ -114,6 +128,17 @@ public class CanvasManager : MonoBehaviour
 
         if (!hasSay || hasMenu) return;
         dialogInput.SetNextLineFlag();
+    }
+
+    public void SetEscapeHoldProgress(float progress)
+    {
+        escapeHoldImage.fillAmount = progress;
+        combatCanvas.SetEscapeProgress(progress);
+    }
+
+    public void ShowMenu(bool isShow)
+    {
+
     }
 
     private void LogMessage(string msg)

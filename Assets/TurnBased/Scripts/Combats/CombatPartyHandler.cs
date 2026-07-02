@@ -52,6 +52,7 @@ public class CombatPartyHandler : MonoBehaviour
         _shakeTweens = new Tween[_partyVisualList.Count];
         _activeTweens = new Tween[_partyVisualList.Count];
         _restingYPositions = new float[_partyVisualList.Count];
+        CaptureRestingY();
 
         _worldMemberRestingPosition = _worldMember.transform.position;
 
@@ -101,7 +102,6 @@ public class CombatPartyHandler : MonoBehaviour
 
         if (isShow)
         {
-            CaptureRestingY();
             AnimatePartyUp(playerXPos.Value, duration);
             AnimateWorldMember(false, duration);
         }

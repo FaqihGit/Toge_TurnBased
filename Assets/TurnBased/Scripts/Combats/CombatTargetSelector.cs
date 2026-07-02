@@ -13,6 +13,13 @@ using UnityEngine.InputSystem;
 /// data (BindParties) into this class, then drives it through BeginTargeting
 /// and reacts to OnTargetsConfirmed / OnTargetingCancelled — the same
 /// push-in / event-out pattern used for PlayerInputRouter and CombatResolver.
+///
+/// Escape is NOT subscribed here. CombatManager.RequestSkipConfirm is the
+/// single owner of the General.Escape input during combat and decides
+/// whether a tap means "skip turn" or "cancel targeting" based on
+/// IsAwaitingTarget, calling CancelTargeting() directly when it's the
+/// latter. That keeps Escape's meaning singular instead of split across two
+/// independent subscribers.
 /// </summary>
 public class CombatTargetSelector
 {
@@ -70,14 +77,12 @@ public class CombatTargetSelector
         playerControls.Combat.Selection.performed -= OnSelection;
         playerControls.Combat.Selection.canceled -= OnSelectionReleased;
         playerControls.Combat.Select.performed -= OnSelect;
-        playerControls.General.Escape.performed -= OnCancelTarget;
 
         if (isSubscribe)
         {
             playerControls.Combat.Selection.performed += OnSelection;
             playerControls.Combat.Selection.canceled += OnSelectionReleased;
             playerControls.Combat.Select.performed += OnSelect;
-            playerControls.General.Escape.performed += OnCancelTarget;
         }
     }
 
@@ -137,6 +142,26 @@ public class CombatTargetSelector
         HideAllIndicators();
     }
 
+    /// Called by CombatManager.RequestSkipConfirm when Escape arrives while
+    /// IsAwaitingTarget is true. Public and side-effecting (fires
+    /// OnTargetingCancelled) — this is the one deliberate cancel path,
+    /// distinct from ForceClose's silent teardown.
+    public void CancelTargeting()
+    {
+        if (!awaitingTarget) return;
+
+        awaitingTarget = false;
+
+        if (targetingHandler != null)
+            targetingHandler.ShowSelectionAll(false);
+
+        pendingAction = null;
+        selectedTargets.Clear();
+        HideAllIndicators();
+
+        OnTargetingCancelled?.Invoke();
+    }
+
     /// "Where does this unit live on its party's canvas/handler" — used both
     /// for the targeting cursor here and by CombatManager for the turn
     /// indicator, so it lives in one place rather than two copies.
@@ -165,20 +190,6 @@ public class CombatTargetSelector
         HideAllIndicators();
 
         OnTargetsConfirmed?.Invoke(action, targets);
-    }
-
-    private void CancelTargeting()
-    {
-        awaitingTarget = false;
-
-        if (targetingHandler != null)
-            targetingHandler.ShowSelectionAll(false);
-
-        pendingAction = null;
-        selectedTargets.Clear();
-        HideAllIndicators();
-
-        OnTargetingCancelled?.Invoke();
     }
 
     private CombatPartyHandler GetTargetHandler(UnitFactionEnum actorFaction, CombatActionSO action)
@@ -238,11 +249,5 @@ public class CombatTargetSelector
 
         if (selectedTargets.Count >= maxTargets)
             ConfirmTargetingResult(selectedTargets);
-    }
-
-    private void OnCancelTarget(InputAction.CallbackContext context)
-    {
-        if (!awaitingTarget) return;
-        CancelTargeting();
     }
 }
