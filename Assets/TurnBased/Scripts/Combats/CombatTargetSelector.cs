@@ -38,6 +38,7 @@ public class CombatTargetSelector
     private readonly List<CombatUnit> selectedTargets = new();
     private int targetCursorIndex;
     private bool awaitingTarget;
+    public bool isAwaitingConfirmation;
 
     // Edge-detection for stick input, matching the deadzone pattern used in
     // CanvasManager/NavigableMenuDialog — stick must return to neutral before
@@ -209,11 +210,15 @@ public class CombatTargetSelector
 
     private void OnSelectionReleased(InputAction.CallbackContext context)
     {
+        if (isAwaitingConfirmation) return;
+
         targetCursorAxisReleased = true;
     }
 
     private void OnSelection(InputAction.CallbackContext context)
     {
+        if (isAwaitingConfirmation) return;
+
         if (!awaitingTarget || targetCandidates.Count == 0) return;
         if (!targetCursorAxisReleased) return;
 
@@ -235,6 +240,8 @@ public class CombatTargetSelector
 
     private void OnSelect(InputAction.CallbackContext context)
     {
+        if (isAwaitingConfirmation) return;
+
         if (!awaitingTarget || targetCandidates.Count == 0) return;
         if (Time.frameCount == targetingOpenedFrame) return; // ignore the confirm that just opened targeting
 

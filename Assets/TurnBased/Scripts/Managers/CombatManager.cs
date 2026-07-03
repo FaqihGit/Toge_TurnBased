@@ -31,7 +31,7 @@ public class CombatManager : MonoBehaviour
     private bool isCombatActive;
     private bool awaitingAction;
     private bool isResolvingAction;
-    private bool awaitingConfirmation;
+    private bool _isAwaitingConfirmation; public bool isAwaitingConfirmation => _isAwaitingConfirmation;
 
     private CombatPartyHandler playerPartyHandler;
     private CombatPartyHandler enemyPartyHandler;
@@ -126,7 +126,7 @@ public class CombatManager : MonoBehaviour
         targetSelector.BindParties(playerUnits, enemyUnits, playerPartyHandler, enemyPartyHandler);
 
         isCombatActive = true;
-        awaitingConfirmation = false;
+        SetAwaitingConfirmation(false);
         AdvanceTurn();
     }
 
@@ -229,7 +229,7 @@ public class CombatManager : MonoBehaviour
 
     public bool SubmitAction(CombatActionSO action, List<CombatUnit> targets)
     {
-        if (!isCombatActive || !awaitingAction || isResolvingAction || awaitingConfirmation || currentActor == null) return false;
+        if (!isCombatActive || !awaitingAction || isResolvingAction || _isAwaitingConfirmation || currentActor == null) return false;
         if (action == null || action.energyCost > currentActor.energy) return false;
 
         var validPool = GetValidTargets(currentActor, action);
@@ -307,7 +307,7 @@ public class CombatManager : MonoBehaviour
 
     public void SubmitSkip()
     {
-        if (!isCombatActive || !awaitingAction || isResolvingAction || awaitingConfirmation) return;
+        if (!isCombatActive || !awaitingAction || isResolvingAction || _isAwaitingConfirmation) return;
         combatCanvas.ShowSkip(currentActor);
         EndTurn();
     }
@@ -322,6 +322,13 @@ public class CombatManager : MonoBehaviour
 
     #region Escape Input Confirmation
 
+    public void SetAwaitingConfirmation(bool isWaiting)
+    {
+        _isAwaitingConfirmation = isWaiting;
+        targetSelector.isAwaitingConfirmation = isWaiting;
+        combatCanvas.isAwaitingConfirmation = isWaiting;
+    }
+
     /// Sole handler for the General.Escape "tap" input during combat — see
     /// HandleEscapeTapped/SubscribeControls. CombatTargetSelector no longer
     /// listens to Escape itself; it only exposes CancelTargeting() as a
@@ -331,7 +338,7 @@ public class CombatManager : MonoBehaviour
     ///   - Otherwise, action menu showing → confirm-to-skip the turn.
     public void RequestSkipConfirm()
     {
-        if (!isCombatActive || isResolvingAction || awaitingConfirmation || currentActor == null) return;
+        if (!isCombatActive || isResolvingAction || _isAwaitingConfirmation || currentActor == null) return;
 
         if (targetSelector.IsAwaitingTarget)
         {
@@ -341,17 +348,17 @@ public class CombatManager : MonoBehaviour
 
         if (!awaitingAction || currentActor.faction != UnitFactionEnum.Player) return;
 
-        awaitingConfirmation = true;
+        SetAwaitingConfirmation(true);
         combatCanvas.ShowConfirmMenu(true,
             "Skip turn?",
             onConfirm: () =>
             {
-                awaitingConfirmation = false;
+                SetAwaitingConfirmation(false);
                 SubmitSkip();
             },
             onCancel: () =>
             {
-                awaitingConfirmation = false;
+                SetAwaitingConfirmation(false);
                 combatCanvas.ShowConfirmMenu(false);
             });
     }
@@ -360,19 +367,19 @@ public class CombatManager : MonoBehaviour
     /// available regardless of whose turn it is.
     public void RequestEscapeConfirm()
     {
-        if (!isCombatActive || awaitingConfirmation) return;
+        if (!isCombatActive || _isAwaitingConfirmation) return;
 
-        awaitingConfirmation = true;
+        SetAwaitingConfirmation(true);
         combatCanvas.ShowConfirmMenu(true,
             "Escape battle?",
             onConfirm: () =>
             {
-                awaitingConfirmation = false;
+                SetAwaitingConfirmation(false);
                 RequestEscape();
             },
             onCancel: () =>
             {
-                awaitingConfirmation = false;
+                SetAwaitingConfirmation(false);
                 combatCanvas.ShowConfirmMenu(false);
             });
     }
@@ -496,7 +503,7 @@ public class CombatManager : MonoBehaviour
     {
         isCombatActive = false;
         awaitingAction = false;
-        awaitingConfirmation = false;
+        SetAwaitingConfirmation(false);
 
         targetSelector.ForceClose();
         HideAllIndicators();
@@ -514,7 +521,7 @@ public class CombatManager : MonoBehaviour
     #region Flowchart Handler
     public void SubmitFlowchartAction()
     {
-        bool canAct = isCombatActive && awaitingAction && !targetSelector.IsAwaitingTarget && !awaitingConfirmation;
+        bool canAct = isCombatActive && awaitingAction && !targetSelector.IsAwaitingTarget && !_isAwaitingConfirmation;
         flowchartHandler.SubmitFlowchartAction(canAct, currentActor);
     }
 

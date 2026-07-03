@@ -73,7 +73,7 @@ public class CombatFlowchartHandler
 
     private static string ActionStringBuilder(string name, int energy)
     {
-        return $"{name}\n E:{energy}";
+        return $"{name} (E:{energy})";
     }
 
     public void SetActionPrompt(string prompt)

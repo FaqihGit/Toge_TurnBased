@@ -51,16 +51,16 @@ public class CanvasManager : MonoBehaviour
         playerControls.Dialogue.Selection.performed -= HandleOnSelection;
         playerControls.Dialogue.Select.performed -= HandleOnSelect;
 
-        playerControls.Combat.Selection.performed -= HandleOnSelection;
-        playerControls.Combat.Select.performed -= HandleOnSelect;
+        playerControls.Combat.Selection.performed -= HandleOnSelectionCombat;
+        playerControls.Combat.Select.performed -= HandleOnSelectCombat;
 
         if (isSubscribe)
         {
             playerControls.Dialogue.Selection.performed += HandleOnSelection;
             playerControls.Dialogue.Select.performed += HandleOnSelect;
 
-            playerControls.Combat.Selection.performed += HandleOnSelection;
-            playerControls.Combat.Select.performed += HandleOnSelect;
+            playerControls.Combat.Selection.performed += HandleOnSelectionCombat;
+            playerControls.Combat.Select.performed += HandleOnSelectCombat;
         }
     }
 
@@ -75,8 +75,12 @@ public class CanvasManager : MonoBehaviour
         }
     }
 
-    private void HandleOnSelection(InputAction.CallbackContext context)
+    private void HandleOnSelectionCombat(InputAction.CallbackContext context) => HandleOnSelection(context, true);
+    private void HandleOnSelection(InputAction.CallbackContext context) => HandleOnSelection(context, false);
+    private void HandleOnSelection(InputAction.CallbackContext context, bool isCombat)
     {
+        if (isCombat && combatCanvas.isAwaitingConfirmation) return;
+
         AdvanceDialog();
 
         selectionInput = context.ReadValue<Vector2>();
@@ -102,8 +106,12 @@ public class CanvasManager : MonoBehaviour
         previousSelectionY = 0f;
     }
 
-    private void HandleOnSelect(InputAction.CallbackContext context)
+    private void HandleOnSelectCombat(InputAction.CallbackContext context) => HandleOnSelect(context, true);
+    private void HandleOnSelect(InputAction.CallbackContext context) => HandleOnSelect(context, false);
+    private void HandleOnSelect(InputAction.CallbackContext context, bool isCombat)
     {
+        if (isCombat && combatCanvas.isAwaitingConfirmation) return;
+
         AdvanceDialog();
 
         if (MenuDialog.ActiveMenuDialog is NavigableMenuDialog activeMenu)

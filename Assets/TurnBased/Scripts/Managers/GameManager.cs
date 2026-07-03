@@ -151,7 +151,8 @@ public class GameManager : MonoBehaviour
         switch (currentState)
         {
             case GameState.Combat:
-                combat.RequestSkipConfirm();
+                if (combat.isAwaitingConfirmation) canvas.combatCanvas.onConfirmNoAction?.Invoke();
+                else combat.RequestSkipConfirm();
                 break;
 
             case GameState.Pause:

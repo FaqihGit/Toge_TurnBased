@@ -38,7 +38,9 @@ public class CombatCanvasManager : MonoBehaviour
     [SerializeField] private TMP_Text confirmationPromptText;
     [SerializeField] private Button confirmationYesButton;
     [SerializeField] private Button confirmationNoButton;
-
+    public Action onConfirmYesAction;
+    public Action onConfirmNoAction;
+    public bool isAwaitingConfirmation;
 
     [Header("Escape")]
     [SerializeField] private GameObject escapePanel;
@@ -55,6 +57,19 @@ public class CombatCanvasManager : MonoBehaviour
     public void Init(Camera combatCamera)
     {
         this.combatCamera = combatCamera;
+
+        confirmationYesButton.onClick.RemoveAllListeners();
+        confirmationYesButton.onClick.AddListener(() =>
+        {
+            onConfirmYesAction?.Invoke();
+            onConfirmYesAction = null;
+        });
+        confirmationNoButton.onClick.RemoveAllListeners();
+        confirmationNoButton.onClick.AddListener(() =>
+        {
+            onConfirmNoAction?.Invoke();
+            onConfirmNoAction = null;
+        });
 
         ClearAll();
     }
@@ -204,15 +219,13 @@ public class CombatCanvasManager : MonoBehaviour
         {
             confirmationPromptText.text = prompt;
 
-            confirmationYesButton.onClick.RemoveAllListeners();
-            confirmationYesButton.onClick.AddListener(() =>
+            onConfirmYesAction = (() =>
             {
                 ShowConfirmMenu(false);
                 onConfirm?.Invoke();
             });
 
-            confirmationNoButton.onClick.RemoveAllListeners();
-            confirmationNoButton.onClick.AddListener(() =>
+            onConfirmNoAction = (() =>
             {
                 ShowConfirmMenu(false);
                 onCancel?.Invoke();
