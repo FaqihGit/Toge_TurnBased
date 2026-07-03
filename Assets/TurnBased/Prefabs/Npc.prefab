@@ -113,7 +113,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0.2297932, b: 0.062745094, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -674,7 +674,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0345224254fb9d7469c33b9aa26cebff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatPartyHandler
-  isDefaultHideParty: 1
   _worldMember: {fileID: 4911377701653156333}
   _partyVisualList:
   - {fileID: 1579692268590787209}
@@ -686,7 +685,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 97f2a951d9d42334481eac4b17c3f5d6, type: 2}
   - {fileID: 11400000, guid: 25ee62466b00f684bb4f9e18fd02ec48, type: 2}
   - {fileID: 11400000, guid: 0f751b14d96892b4cadddf423cc96128, type: 2}
-  _undergroundOffset: 2
+  _undergroundOffset: -2
   _showEase:
     serializedVersion: 2
     m_Curve:

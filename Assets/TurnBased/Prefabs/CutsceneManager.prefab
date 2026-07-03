@@ -44,14 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 436114c4899f56e4eb39c1c3f41ad5a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutsceneManager
-  steps:
-  - label: 
-    type: 0
-    destination: {fileID: 0}
-    arrivalThreshold: 0
-    dialogTarget: {fileID: 0}
-  obstacleCheckOrigin: {fileID: 0}
   obstacleCheckDistance: 0.6
   obstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 375
+    m_Bits: 119

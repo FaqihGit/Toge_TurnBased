@@ -5,9 +5,6 @@ using UnityEngine;
 
 public class CombatPartyHandler : MonoBehaviour
 {
-    [Header("Config")]
-    [Tooltip("If true then all party object would be hidden normally aside from world member\n else then always show all, no logic will hide them, player party always shows")]
-    [SerializeField] private bool isDefaultHideParty = true;
     [Tooltip("Single indicator of current selection")]
     [SerializeField] private GameObject _worldMember;
     [SerializeField] private List<CombatUnitVisual> _partyVisualList;
@@ -15,10 +12,9 @@ public class CombatPartyHandler : MonoBehaviour
     [HideInInspector] public List<UnitDataSO> partyUnitList;
 
     [Header("Animation")]
-    [SerializeField] private float _undergroundOffset = 2f;
+    [SerializeField] private float _undergroundOffset = -2f;
     [SerializeField] private AnimationCurve _showEase = AnimationCurve.EaseInOut(0, 0, 1, 1);
     [SerializeField] private AnimationCurve _hideEase = AnimationCurve.EaseInOut(0, 0, 1, 1);
-    private float[] _restingYPositions;
     private Tween[] _activeTweens;
 
     [Header("Action Feedback")]
@@ -30,9 +26,6 @@ public class CombatPartyHandler : MonoBehaviour
     [SerializeField] private float _hitShakeDuration = 0.3f;
     private Tween[] _actionTweens;
     private Tween[] _shakeTweens;
-
-
-    private Vector3 _worldMemberRestingPosition;
     private Tween _worldMemberTween;
 
     private enum PartyVisualState
@@ -44,27 +37,22 @@ public class CombatPartyHandler : MonoBehaviour
 
     private PartyVisualState _state;
 
+    /// Number of party slots that should actually be visible, driven by
+    /// partyUnitList and capped to however many visual slots exist (4).
+    private int ActivePartyCount =>
+        partyUnitList != null
+            ? Mathf.Clamp(partyUnitList.Count, 0, _partyVisualList.Count)
+            : _partyVisualList.Count;
+
     void Awake()
     {
         _activeTweens = new Tween[_partyVisualList.Count];
-        _restingYPositions = new float[_partyVisualList.Count];
         _actionTweens = new Tween[_partyVisualList.Count];
         _shakeTweens = new Tween[_partyVisualList.Count];
         _activeTweens = new Tween[_partyVisualList.Count];
-        _restingYPositions = new float[_partyVisualList.Count];
-        CaptureRestingY();
 
-        _worldMemberRestingPosition = _worldMember.transform.position;
-
-        if (isDefaultHideParty)
-        {
-            SetPartyImmediate(false);
-            _state = PartyVisualState.WorldOnly;
-        }
-        else
-        {
-            _state = PartyVisualState.PartyShown;
-        }
+        SetPartyImmediate(false);
+        _state = PartyVisualState.WorldOnly;
 
         ShowSelectionAll(false);
     }
@@ -73,18 +61,10 @@ public class CombatPartyHandler : MonoBehaviour
     // PUBLIC API
     // =========================
 
-    public void ShowParty(bool isShow, float? playerXPos = null, float duration = 0.5f)
+    public void ShowParty(bool isShow, float? playerXPos = null, float duration = 1)
     {
-        if (!isDefaultHideParty) return;
-
         if (_state == PartyVisualState.Transitioning)
             return;
-
-        if (isShow && !playerXPos.HasValue)
-        {
-            Debug.LogError("ShowParty(true) requires playerXPos");
-            return;
-        }
 
         if (isShow && _state == PartyVisualState.PartyShown) return;
         if (!isShow && _state == PartyVisualState.WorldOnly) return;
@@ -102,21 +82,13 @@ public class CombatPartyHandler : MonoBehaviour
 
         if (isShow)
         {
-            AnimatePartyUp(playerXPos.Value, duration);
             AnimateWorldMember(false, duration);
+            AnimatePartyUp(playerXPos, duration);
         }
         else
         {
-            AnimatePartyDown(duration);
             AnimateWorldMember(true, duration);
-        }
-    }
-
-    private void CaptureRestingY()
-    {
-        for (int i = 0; i < _partyVisualList.Count; i++)
-        {
-            _restingYPositions[i] = _partyVisualList[i].transform.position.y;
+            AnimatePartyDown(duration);
         }
     }
 
@@ -124,50 +96,62 @@ public class CombatPartyHandler : MonoBehaviour
     // PARTY ANIMATION
     // =========================
 
-    private void AnimatePartyUp(float playerX, float duration)
+    private void AnimatePartyUp(float? playerX, float duration)
     {
+        int activeCount = ActivePartyCount;
         int completed = 0;
-        int total = _partyVisualList.Count;
 
         for (int i = 0; i < _partyVisualList.Count; i++)
         {
             var visual = _partyVisualList[i];
             _activeTweens[i]?.Kill();
 
-            float restingY = _restingYPositions[i];
+            // Slots beyond the current party size stay hidden entirely.
+            if (i >= activeCount)
+            {
+                if (visual.gameObject.activeSelf)
+                    visual.gameObject.SetActive(false);
+                continue;
+            }
 
             Vector3 pos = visual.transform.position;
-            pos.x = playerX + 11f;
-            pos.y = restingY - _undergroundOffset;
-
+            if (playerX.HasValue) pos.x = playerX.Value + 11f;
             visual.transform.position = pos;
+
+            Vector3 localPos = visual.transform.localPosition;
+            localPos.y = _undergroundOffset;
+            visual.transform.localPosition = localPos;
+
             visual.gameObject.SetActive(true);
 
             if (duration <= 0f)
             {
-                pos.y = restingY;
-                visual.transform.position = pos;
+                localPos.y = 0;
+                visual.transform.localPosition = localPos;
                 completed++;
                 continue;
             }
 
             _activeTweens[i] = visual.transform
-                .DOMoveY(restingY, duration)
+                .DOLocalMoveY(0, duration)
                 .SetEase(_showEase)
                 .OnComplete(() =>
                 {
                     completed++;
-                    if (completed >= total)
+                    if (completed >= activeCount)
                         _state = PartyVisualState.PartyShown;
                 });
         }
 
-        if (duration <= 0f)
+        // Nothing to animate (party of 0) or instant application already
+        // resolved every active slot synchronously.
+        if (activeCount == 0 || completed >= activeCount)
             _state = PartyVisualState.PartyShown;
     }
 
     private void AnimatePartyDown(float duration)
     {
+        int activeCount = ActivePartyCount;
         int completed = 0;
         int total = _partyVisualList.Count;
 
@@ -175,15 +159,22 @@ public class CombatPartyHandler : MonoBehaviour
         {
             var visual = _partyVisualList[i];
             _activeTweens[i]?.Kill();
+
+            // Slots beyond the current party size are already excluded /
+            // get force-hidden, and count as immediately "done".
+            if (i >= activeCount)
+            {
+                if (visual.gameObject.activeSelf)
+                    visual.gameObject.SetActive(false);
+                completed++;
+                continue;
+            }
 
             if (!visual.gameObject.activeSelf)
             {
                 completed++;
                 continue;
             }
-
-            float restingY = _restingYPositions[i];
-            float targetY = restingY - _undergroundOffset;
 
             if (duration <= 0f)
             {
@@ -193,7 +184,7 @@ public class CombatPartyHandler : MonoBehaviour
             }
 
             _activeTweens[i] = visual.transform
-                .DOMoveY(targetY, duration)
+                .DOLocalMoveY(_undergroundOffset, duration)
                 .SetEase(_hideEase)
                 .OnComplete(() =>
                 {
@@ -205,7 +196,7 @@ public class CombatPartyHandler : MonoBehaviour
                 });
         }
 
-        if (duration <= 0f)
+        if (completed >= total)
             _state = PartyVisualState.WorldOnly;
     }
 
@@ -219,27 +210,26 @@ public class CombatPartyHandler : MonoBehaviour
 
         if (isShow)
         {
-            Vector3 pos = _worldMemberRestingPosition;
-            pos.y -= _undergroundOffset;
+            Vector3 pos = _worldMember.transform.localPosition;
+            pos.y = _undergroundOffset;
 
-            _worldMember.transform.position = pos;
+            _worldMember.transform.localPosition = pos;
             _worldMember.SetActive(true);
 
             if (duration <= 0f)
             {
-                _worldMember.transform.position = _worldMemberRestingPosition;
+                pos.y = 0;
+                _worldMember.transform.localPosition = pos;
                 return;
             }
 
             _worldMemberTween = _worldMember.transform
-                .DOMoveY(_worldMemberRestingPosition.y, duration)
+                .DOLocalMoveY(0, duration)
                 .SetEase(_showEase);
         }
         else
         {
             if (!_worldMember.activeSelf) return;
-
-            float targetY = _worldMemberRestingPosition.y - _undergroundOffset;
 
             if (duration <= 0f)
             {
@@ -248,7 +238,7 @@ public class CombatPartyHandler : MonoBehaviour
             }
 
             _worldMemberTween = _worldMember.transform
-                .DOMoveY(targetY, duration)
+                .DOLocalMoveY(_undergroundOffset, duration)
                 .SetEase(_hideEase)
                 .OnComplete(() => _worldMember.SetActive(false));
         }
@@ -260,13 +250,15 @@ public class CombatPartyHandler : MonoBehaviour
 
     private void SetPartyImmediate(bool isShow)
     {
+        int activeCount = ActivePartyCount;
+
         for (int i = 0; i < _partyVisualList.Count; i++)
         {
             var visual = _partyVisualList[i];
-            visual.gameObject.SetActive(isShow);
+            visual.gameObject.SetActive(isShow && i < activeCount);
         }
 
-        _worldMember.SetActive(!isShow);
+        if (_worldMember) _worldMember.SetActive(!isShow);
     }
 
     // =========================
@@ -275,13 +267,17 @@ public class CombatPartyHandler : MonoBehaviour
 
     public void ShowSelectionAll(bool isShow)
     {
-        foreach (var visual in _partyVisualList)
-            visual.selectionObject.SetActive(isShow);
+        int activeCount = ActivePartyCount;
+
+        for (int i = 0; i < _partyVisualList.Count; i++)
+            _partyVisualList[i].selectionObject.SetActive(isShow && i < activeCount);
     }
 
     public void ShowSelection(bool isShow, int memberIdx)
     {
         if (memberIdx < 0 || memberIdx >= _partyVisualList.Count) return;
+        if (memberIdx >= ActivePartyCount) return;
+
         _partyVisualList[memberIdx].selectionObject.SetActive(isShow);
     }
 

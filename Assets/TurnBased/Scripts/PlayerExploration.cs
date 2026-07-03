@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
-using System.Xml.Schema;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
 public class PlayerExploration : MonoBehaviour
@@ -32,6 +32,10 @@ public class PlayerExploration : MonoBehaviour
     [SerializeField] private Transform interactCheck;
     [SerializeField] private float interactRadius = 1.5f;
     [SerializeField] private LayerMask interactableLayers; // set this to the "Interactables" layer in the Inspector
+
+    [Header("Sprite Animation")]
+    [SerializeField] private SpriteLoopHandler spriteLoopHandler;
+    [SerializeField] private float moveInputDeadzone = 0.1f;
 
     private Rigidbody rb;
 
@@ -62,6 +66,8 @@ public class PlayerExploration : MonoBehaviour
     private bool interactRequested;
 
     private bool isExternallyDriven;
+
+    private bool isSpriteLooping;
 
     public Interactables CurrentInteractable => currentInteractable;
     public bool IsGrounded => isGrounded;
@@ -133,6 +139,7 @@ public class PlayerExploration : MonoBehaviour
 
         HandleInteractDetection();
         HandleInteractRequest();
+        HandleSpriteAnimation();
     }
 
     private void FixedUpdate()
@@ -265,6 +272,29 @@ public class PlayerExploration : MonoBehaviour
         {
             TryInteract(currentInteractable);
             interactRequested = false;
+        }
+    }
+
+    /// <summary>
+    /// Drives the ground-loop sprite animation: loops while grounded and moving,
+    /// stops on stop/jump/airborne, and flips facing based on horizontal input direction.
+    /// </summary>
+    private void HandleSpriteAnimation()
+    {
+        if (spriteLoopHandler == null) return;
+
+        bool isMovingHorizontally = Mathf.Abs(moveInput.x) > moveInputDeadzone;
+        bool shouldLoop = isGrounded && isMovingHorizontally && !jumpRequested;
+
+        if (shouldLoop != isSpriteLooping)
+        {
+            spriteLoopHandler.StartLoping(shouldLoop);
+            isSpriteLooping = shouldLoop;
+        }
+
+        if (isMovingHorizontally)
+        {
+            spriteLoopHandler.SetXFlip(moveInput.x < 0f);
         }
     }
 

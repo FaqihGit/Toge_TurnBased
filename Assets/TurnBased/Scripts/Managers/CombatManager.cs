@@ -94,6 +94,7 @@ public class CombatManager : MonoBehaviour
         playerPartyHandler = playerParty;
         enemyPartyHandler = enemyParty;
 
+        playerParty.ShowParty(true, null);
         enemyPartyHandler.ShowParty(true, playerPartyHandler.WorldMemberPosition.x);
 
         playerUnits.Clear();
@@ -508,6 +509,7 @@ public class CombatManager : MonoBehaviour
         targetSelector.ForceClose();
         HideAllIndicators();
         combatCanvas.ShowConfirmMenu(false);
+        playerPartyHandler.ShowParty(false);
         enemyPartyHandler.ShowParty(false);
         combatCanvas.ClearAll();
         combatFlowchart.StopAllBlocks();
