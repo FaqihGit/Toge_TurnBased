@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Fungus;
+using UnityEngine;
 
 /// Owns all Fungus/Flowchart interop for the combat action menu — reading
 /// ActionIdx, writing option/interactable variables, building display
