@@ -899,6 +899,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5523350470721687852}
+  - component: {fileID: 683984346089888161}
   m_Layer: 5
   m_Name: PausePanel
   m_TagString: Untagged
@@ -927,6 +928,20 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &683984346089888161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1690300665905185372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9962968ce3f396b46a5c51bf7844f7a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PauseMenuUI
+  resumeButton: {fileID: 4644144000451673178}
+  quitButton: {fileID: 7113345506728758418}
 --- !u!1 &1733954270049793443
 GameObject:
   m_ObjectHideFlags: 0
@@ -3437,7 +3452,7 @@ GameObject:
   - component: {fileID: 261505851426507581}
   - component: {fileID: 7113345506728758418}
   m_Layer: 5
-  m_Name: Button (1)
+  m_Name: QuitButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4164,6 +4179,7 @@ MonoBehaviour:
   sayDialog: {fileID: 4295046800399869022}
   dialogInput: {fileID: 695718336513919411}
   _cutsceneLetterbox: {fileID: 9152627486614645907}
+  _pauseMenu: {fileID: 683984346089888161}
 --- !u!1 &7213877603937153095
 GameObject:
   m_ObjectHideFlags: 0
@@ -4630,7 +4646,7 @@ GameObject:
   - component: {fileID: 8944593778125322224}
   - component: {fileID: 4644144000451673178}
   m_Layer: 5
-  m_Name: Button
+  m_Name: ResumeButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

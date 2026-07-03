@@ -80,6 +80,7 @@ public class GameManager : MonoBehaviour
 
         canvas.Init(playerControls, cameraTransitionController.mainCamera, cutscene);
         canvas.OnMenuOptionSelection += HandleOnCanvasMenuOptionSelection;
+        canvas.OnPauseResumeButtonClicked += HandleOnCanvasResumeButtonClicked;
     }
 
     private void Update()
@@ -182,12 +183,14 @@ public class GameManager : MonoBehaviour
     private void EnterPause()
     {
         ChangeState(GameState.Pause);
-        canvas.ShowMenu(true);
+        canvas.ShowPauseMenu(true);
     }
 
     private void ExitPause()
     {
-        canvas.ShowMenu(false);
+        if (currentState != GameState.Pause) return;
+
+        canvas.ShowPauseMenu(false);
         RevertToPreviousState();
     }
 
@@ -256,6 +259,10 @@ public class GameManager : MonoBehaviour
         combat.SetActionSelection(optionIdx);
     }
 
+    private void HandleOnCanvasResumeButtonClicked()
+    {
+        ExitPause();
+    }
     #endregion
 
     private void SetPlatformMatsAlpha(float alpha)

@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class CanvasManager : MonoBehaviour
 {
     public Action<int> OnMenuOptionSelection;
+    public Action OnPauseResumeButtonClicked;
 
     [SerializeField] private Image escapeHoldImage;
 
@@ -17,6 +18,7 @@ public class CanvasManager : MonoBehaviour
     [SerializeField] private SayDialog sayDialog;
     [SerializeField] private DialogInput dialogInput;
     [SerializeField] private CutsceneLetterboxUI _cutsceneLetterbox;
+    [SerializeField] private PauseMenuUI _pauseMenu;
 
     private PlayerInputAction playerControls;
     private Vector2 selectionInput;
@@ -42,6 +44,8 @@ public class CanvasManager : MonoBehaviour
         _worldCanvas.Init(mainCam);
         _cutsceneLetterbox.Init(cutscene);
         menuDialog.OnOptionSelection += HandleOnMenuOptionSelection;
+        _pauseMenu.Init();
+        _pauseMenu.OnResumeButtonClicked = HandleOnPauseResumeButtonClicked;
     }
 
     private void SubscribeControls(bool isSubscribe)
@@ -126,7 +130,11 @@ public class CanvasManager : MonoBehaviour
         OnMenuOptionSelection?.Invoke(idx);
     }
 
-    [ContextMenu("Advance Dialog")]
+    private void HandleOnPauseResumeButtonClicked()
+    {
+        OnPauseResumeButtonClicked?.Invoke();
+    }
+
     public void AdvanceDialog()
     {
         bool hasSay = SayDialog.ActiveSayDialog;
@@ -144,9 +152,9 @@ public class CanvasManager : MonoBehaviour
         combatCanvas.SetEscapeProgress(progress);
     }
 
-    public void ShowMenu(bool isShow)
+    public void ShowPauseMenu(bool isShow)
     {
-
+        _pauseMenu.ShowMenu(isShow);
     }
 
     private void LogMessage(string msg)
