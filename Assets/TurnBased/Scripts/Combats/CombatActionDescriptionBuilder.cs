@@ -24,7 +24,10 @@ public static class CombatActionDescriptionBuilder
     private static string BuildDamageDescription(CombatUnit unit, CombatActionSO action)
     {
         var sb = new StringBuilder();
-        sb.Append($"Deal {B_OPEN}{(unit.source.stats.combatAttack * action.damageMult):0.##}{B_CLOSE} damage to {TargetPhrase(action)}");
+        if (action.damageMult >= 0f)
+            sb.Append($"Deal {B_OPEN}{(unit.source.stats.combatAttack * action.damageMult):0.##}{B_CLOSE} damage to {TargetPhrase(action)}");
+        else
+            sb.Append($"{I_OPEN}Heal{I_CLOSE} for {B_OPEN}{-action.damageMult:0.##}{B_CLOSE} health to {TargetPhrase(action)}");
 
         if (action.appliesStun)
             sb.Append($" and applies {I_OPEN}Stun{I_CLOSE} for {B_OPEN}{action.buffTurn}{B_CLOSE} turns");
@@ -39,15 +42,12 @@ public static class CombatActionDescriptionBuilder
     {
         var segments = new List<string>();
 
-        if (action.damageMult > 0f)
-            segments.Add($"{I_OPEN}Heal{I_CLOSE} {B_OPEN}{-action.damageMult:0.##}{B_CLOSE}");
-
         string statPhrase = BuffStatPhrase(action.buffValue);
         if (!string.IsNullOrEmpty(statPhrase))
             segments.Add($"Buff {statPhrase}");
 
         if (action.isGuard)
-            segments.Add($"apply {I_OPEN}Guard{I_CLOSE}");
+            segments.Add($"Apply {I_OPEN}Guard{I_CLOSE}");
 
         if (segments.Count == 0)
             return $"No effect to {TargetPhrase(action)}";

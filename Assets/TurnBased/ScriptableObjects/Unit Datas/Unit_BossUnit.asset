@@ -17,7 +17,7 @@ MonoBehaviour:
   stats:
     maxHealth: 400
     currentHealth: 100
-    combatAttack: 20
+    combatAttack: 50
     combatDefense: 0
     combatSpeed: 5
   combatActionList:

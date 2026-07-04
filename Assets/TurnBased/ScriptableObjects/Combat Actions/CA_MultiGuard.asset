@@ -16,7 +16,7 @@ MonoBehaviour:
   energyCost: 5
   target: 0
   targetCount: 2
-  damageMult: 0.7
+  damageMult: 0
   isIgnoreDef: 0
   isBuff: 1
   isGuard: 1

@@ -91,8 +91,6 @@ public class NavigableMenuDialog : MenuDialog
             ? 0
             : Mathf.Clamp(currentIndex + direction, 0, options.Length - 1);
 
-        EventSystem.current.SetSelectedGameObject(options[nextIndex].gameObject);
-
-        OnOptionSelection?.Invoke(nextIndex);
+        SelectOption(nextIndex);
     }
 }
