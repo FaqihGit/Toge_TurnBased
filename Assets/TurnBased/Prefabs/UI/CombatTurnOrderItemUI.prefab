@@ -286,6 +286,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatTurnOrderItemUI
   canvasGroup: {fileID: 3192716003077640879}
   unitImage: {fileID: 5517717941435493385}
+  playerColor: {r: 0.50000006, g: 0.5, b: 1, a: 1}
+  enemiesColor: {r: 1, g: 0.5, b: 0.5, a: 1}
   unitName: {fileID: 3682020962349068337}
 --- !u!225 &3192716003077640879
 CanvasGroup:

@@ -139,6 +139,7 @@ GameObject:
   - component: {fileID: 5431367376924219456}
   - component: {fileID: 3738285562273889310}
   - component: {fileID: 1878551361844620378}
+  - component: {fileID: 4012566331579470775}
   m_Layer: 0
   m_Name: Flowchart
   m_TagString: Untagged
@@ -188,7 +189,8 @@ MonoBehaviour:
   selectedBlocks:
   - {fileID: 1798305131897936611}
   selectedCommands: []
-  variables: []
+  variables:
+  - {fileID: 4012566331579470775}
   description: 
   stepPause: 0
   colorCommands: 1
@@ -498,6 +500,21 @@ MonoBehaviour:
   stringEvent:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4012566331579470775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7908406276732331627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d02d9822eec54c98afe95bb497211b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fungus::Fungus.BooleanVariable
+  scope: 1
+  key: HasBeenInteracted
+  value: 0
 --- !u!1 &8143532613015471652
 GameObject:
   m_ObjectHideFlags: 0
@@ -637,6 +654,7 @@ MonoBehaviour:
       m_Calls: []
   npcData: {fileID: 11400000, guid: 80520bde8f380254f8d580dbbfc45cdb, type: 2}
   teamDataList: []
+  _isOnlyInteractingOnce: 0
   npcFlowchart: {fileID: 7546855783286970587}
   _canvasTarget: {fileID: 795097314492354439}
   npcCharacter: {fileID: 8944697830798066471}

@@ -16,13 +16,20 @@ public class CutsceneLetterboxUI : MonoBehaviour
         SetBarsHidden();
     }
 
-    public void Init(CutsceneManager cutscene)
+    public void Init()
     {
-        cutscene.OnCutsceneStarted -= Show;
-        cutscene.OnCutsceneStarted += Show;
+    }
 
-        cutscene.OnCutsceneEnded -= Hide;
-        cutscene.OnCutsceneEnded += Hide;
+    public void HandleGameStateChanged(GameState oldState, GameState newState)
+    {
+        if (newState == GameState.Cutscene)
+        {
+            Show();
+        }
+        else if (oldState == GameState.Cutscene)
+        {
+            Hide();
+        }
     }
 
     private void SetBarsHidden()

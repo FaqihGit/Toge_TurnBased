@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19aeeb8c4dc2fa54ca3d44175648a8e8, type: 3}
   m_Name: Unit_NpcCombatTutorial
   m_EditorClassIdentifier: Assembly-CSharp::UnitDataSO
-  name: Npc 1
+  name: Instructor
+  sprite: {fileID: 0}
   stats:
     maxHealth: 100
     currentHealth: 100

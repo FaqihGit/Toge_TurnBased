@@ -64,6 +64,7 @@ public class GameManager : MonoBehaviour
         EnterState(currentState);
 
         combat.Init(playerControls, canvas.combatCanvas);
+        combat.OnTurnEnded += HandleOnCombatTurnEnded;
         combat.OnCombatEnded += HandleOnCombatEnd;
         combat.OnEscaped += HandleOnCombatEscaped;
 
@@ -190,6 +191,7 @@ public class GameManager : MonoBehaviour
     {
         if (currentState != GameState.Pause) return;
 
+        canvas.ShowCombatResult(false);
         canvas.ShowPauseMenu(false);
         RevertToPreviousState();
     }
@@ -216,7 +218,7 @@ public class GameManager : MonoBehaviour
 
     private void HandleOnPlayerInteractableUpdate(Interactables interactable)
     {
-        if (interactable != null)
+        if (interactable != null && interactable.isInteractable)
         {
             canvas.worldCanvas.ShowInteractablePrompt(true, interactable.canvasTarget);
         }
@@ -232,10 +234,20 @@ public class GameManager : MonoBehaviour
         combat.StartCombat(player.playerParty, enemyParty);
     }
 
+    private void HandleOnCombatTurnEnded(CombatUnit actor)
+    {
+        canvas.ShowFungus(false);
+    }
+
     private void HandleOnCombatEnd(bool isVictory)
     {
-
-        ChangeState(GameState.Exploration);
+        ChangeState(GameState.Exploration); // So unpause can revert to exploration rather than going back to combat
+        ChangeState(GameState.Pause);
+        canvas.ShowCombatResult(
+            true,
+            isVictory ? "Congrats you win" : "loser lmao",
+            () => ExitPause()
+        );
     }
 
     private void HandleOnCombatEscaped()
@@ -251,6 +263,8 @@ public class GameManager : MonoBehaviour
 
     private void HandleOnCutsceneEnded()
     {
+        if (currentState != GameState.Cutscene) return;
+
         ChangeState(GameState.Exploration);
     }
 
@@ -291,7 +305,9 @@ public class GameManager : MonoBehaviour
         EnterState(newState);
 
         LogMessage($"ChangeState {previousState} => {currentState}");
+
         cameraTransitionController.HandleStateChanged(oldState, newState);
+        canvas.HandleGameStateChanged(oldState, newState);
     }
 
     [ContextMenu("DEBUG/ChangeStateDebug")]

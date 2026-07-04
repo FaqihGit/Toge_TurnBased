@@ -42,7 +42,7 @@ public class CombatManager : MonoBehaviour
     public bool IsCombatActive => isCombatActive;
 
 
-    public event Action<CombatUnit> OnTurnStarted;
+    public event Action<CombatUnit> OnTurnEnded;
 
     /// Fired once when the encounter ends in victory (true) or defeat (false).
     public event Action<bool> OnCombatEnded;
@@ -167,8 +167,6 @@ public class CombatManager : MonoBehaviour
 
         combatResolver.TickStatuses(actor);
 
-        OnTurnStarted?.Invoke(actor);
-
         LogMessage($"StartTurn wasStunned {wasStunned}");
         if (wasStunned)
         {
@@ -195,7 +193,7 @@ public class CombatManager : MonoBehaviour
         combatCanvas.SetIndicator(currentActor);
         combatCanvas.ShowIndicator(true);
 
-        SetActionSelection(0);
+        SetActionSelection(0, true);
         flowchartHandler.SetActionOption(currentActor, currentActor.source.combatActionList);
         flowchartHandler.TriggerActionBlock();
     }
@@ -219,8 +217,12 @@ public class CombatManager : MonoBehaviour
     {
         awaitingAction = false;
         targetSelector.ForceClose();
-        HideAllIndicators();
+
+        OnTurnEnded?.Invoke(currentActor);
+
         currentActor = null;
+
+        HideAllIndicators();
         AdvanceTurn();
     }
 
@@ -400,18 +402,26 @@ public class CombatManager : MonoBehaviour
         return result;
     }
 
-    public void SetActionSelection(int optionIdx)
+    private int currentActionOptionIdx;
+
+    public void SetActionSelection(int optionIdx, bool isForceSameIdx = false)
     {
+        if (isForceSameIdx) currentActionOptionIdx = -1;
+        LogMessage($"SetActionSelection {optionIdx}");
+
         if (
             currentActor == null
             || currentActor.source == null
             || currentActor.source.combatActionList == null
             || currentActor.source.combatActionList.Count <= 0
             || currentActor.source.combatActionList.Count <= optionIdx
+            || currentActionOptionIdx == optionIdx
             )
             return;
 
+        currentActionOptionIdx = optionIdx;
         var currentAction = currentActor.source.combatActionList[optionIdx];
+        LogMessage($"SetActionSelection currentAction {currentAction.name}");
         flowchartHandler.SetActionPrompt(CombatActionDescriptionBuilder.Build(currentActor, currentAction));
     }
 
@@ -531,6 +541,6 @@ public class CombatManager : MonoBehaviour
 
     private void LogMessage(string msg)
     {
-        // Debug.Log($"[CombatManager] {msg}");
+        Debug.Log($"[CombatManager] {msg}");
     }
 }

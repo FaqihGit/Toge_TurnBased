@@ -18,6 +18,7 @@ public class CanvasManager : MonoBehaviour
     [SerializeField] private SayDialog sayDialog;
     [SerializeField] private DialogInput dialogInput;
     [SerializeField] private CutsceneLetterboxUI _cutsceneLetterbox;
+    [SerializeField] private CombatResultPopupUI _combatEndPopup;
     [SerializeField] private PauseMenuUI _pauseMenu;
 
     private PlayerInputAction playerControls;
@@ -42,10 +43,18 @@ public class CanvasManager : MonoBehaviour
 
         _combatCanvas.Init(mainCam);
         _worldCanvas.Init(mainCam);
-        _cutsceneLetterbox.Init(cutscene);
+        _cutsceneLetterbox.Init();
         menuDialog.OnOptionSelection += HandleOnMenuOptionSelection;
+
+        _combatEndPopup.Init();
+
         _pauseMenu.Init();
         _pauseMenu.OnResumeButtonClicked = HandleOnPauseResumeButtonClicked;
+    }
+
+    public void HandleGameStateChanged(GameState oldState, GameState newState)
+    {
+        _cutsceneLetterbox.HandleGameStateChanged(oldState, newState);
     }
 
     private void SubscribeControls(bool isSubscribe)
@@ -53,17 +62,21 @@ public class CanvasManager : MonoBehaviour
         if (playerControls == null) return;
 
         playerControls.Dialogue.Selection.performed -= HandleOnSelection;
+        playerControls.Dialogue.Selection.canceled -= HandleOnSelection;
         playerControls.Dialogue.Select.performed -= HandleOnSelect;
 
         playerControls.Combat.Selection.performed -= HandleOnSelectionCombat;
+        playerControls.Combat.Selection.canceled -= HandleOnSelectionCombat;
         playerControls.Combat.Select.performed -= HandleOnSelectCombat;
 
         if (isSubscribe)
         {
             playerControls.Dialogue.Selection.performed += HandleOnSelection;
+            playerControls.Dialogue.Selection.canceled += HandleOnSelection;
             playerControls.Dialogue.Select.performed += HandleOnSelect;
 
             playerControls.Combat.Selection.performed += HandleOnSelectionCombat;
+            playerControls.Combat.Selection.canceled += HandleOnSelectionCombat;
             playerControls.Combat.Select.performed += HandleOnSelectCombat;
         }
     }
@@ -150,6 +163,20 @@ public class CanvasManager : MonoBehaviour
     {
         escapeHoldImage.fillAmount = progress;
         combatCanvas.SetEscapeProgress(progress);
+    }
+
+    public void ShowCombatResult(bool isShow, string prompt = null, Action callback = null)
+    {
+        _combatEndPopup.ShowPopup(isShow);
+        if (isShow)
+        {
+            _combatEndPopup.SetPrompt(prompt);
+            _combatEndPopup.OnConfirm = () =>
+            {
+                callback?.Invoke();
+                _combatEndPopup.OnConfirm = null;
+            };
+        }
     }
 
     public void ShowPauseMenu(bool isShow)

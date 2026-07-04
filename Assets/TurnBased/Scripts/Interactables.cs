@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Fungus;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -13,6 +14,17 @@ public class Interactables : MonoBehaviour
     [Header("Data References")]
     [SerializeField] private UnitDataSO npcData;
     [SerializeField] private List<UnitDataSO> teamDataList;
+    public bool isInteractable
+    {
+        get
+        {
+            if (_isOnlyInteractingOnce && hasBeenInteracted) return false;
+            if (!npcFlowchart) return false;
+            return true;
+        }
+    }
+    [SerializeField] private bool _isOnlyInteractingOnce = false; public bool isOnlyInteractingOnce => _isOnlyInteractingOnce;
+    private bool hasBeenInteracted;
 
     [Header("Component References")]
     [SerializeField] private Flowchart npcFlowchart;
@@ -28,30 +40,34 @@ public class Interactables : MonoBehaviour
     {
         if (hasInitialized) return;
 
+        foreach (var unit in teamDataList) unit.stats.ResetHealth();
+
         npcCharacter.SetStandardText(npcData.name);
         combatParty.partyUnitList = new(teamDataList);
+
+        hasBeenInteracted = false;
+        npcFlowchart.SetBooleanVariable("HasBeenInteracted", false);
 
         hasInitialized = true;
     }
 
     public bool Interact(UnityAction OnEndDialogCallback)
     {
-        Init();
+        if (!isInteractable) return false;
+
         LogMessage($"Interacted");
-        if (npcFlowchart)
-        {
-            if (isInteracting) return false;
-            isInteracting = true;
 
-            npcFlowchart.ExecuteBlock("Interact");
+        Init();
 
-            OnEndDialogAction = () => OnEndDialogCallback?.Invoke();
-            return true;
-        }
-        return false;
+        if (isInteracting) return false;
+        isInteracting = true;
+
+        npcFlowchart.ExecuteBlock("Interact");
+
+        OnEndDialogAction = () => OnEndDialogCallback?.Invoke();
+        return true;
     }
 
-    [ContextMenu("Trigger Combat")]
     public void TriggerCombat()
     {
         OnDialog(false);
@@ -64,6 +80,9 @@ public class Interactables : MonoBehaviour
         isInteracting = isStart;
         if (!isStart)
         {
+            hasBeenInteracted = true;
+            npcFlowchart.SetBooleanVariable("HasBeenInteracted", true);
+
             OnEndDialogAction?.Invoke();
             OnEndDialogAction = null;
 

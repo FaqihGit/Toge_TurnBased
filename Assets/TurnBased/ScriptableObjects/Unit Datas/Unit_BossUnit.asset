@@ -10,15 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 19aeeb8c4dc2fa54ca3d44175648a8e8, type: 3}
-  m_Name: Unit_Player3
+  m_Name: Unit_BossUnit
   m_EditorClassIdentifier: Assembly-CSharp::UnitDataSO
-  name: Player 3
+  name: Boss
+  sprite: {fileID: 0}
   stats:
-    maxHealth: 100
+    maxHealth: 400
     currentHealth: 100
-    combatAttack: 10
+    combatAttack: 20
     combatDefense: 0
-    combatSpeed: 10
+    combatSpeed: 5
   combatActionList:
   - {fileID: 11400000, guid: 3eee723d6be115c4eb630f78880d063a, type: 2}
   - {fileID: 11400000, guid: faa9d1f8ec68c62489c1a55298a1f1da, type: 2}

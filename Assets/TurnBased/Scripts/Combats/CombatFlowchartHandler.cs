@@ -79,5 +79,7 @@ public class CombatFlowchartHandler
     public void SetActionPrompt(string prompt)
     {
         combatFlowchart.SetStringVariable(ActionPromptVariable, string.IsNullOrEmpty(prompt) ? "Choose your action" : prompt);
+        combatFlowchart.StopBlock("UpdatePrompt");
+        combatFlowchart.ExecuteBlock("UpdatePrompt");
     }
 }

@@ -6,6 +6,8 @@ public class CombatTurnOrderItemUI : MonoBehaviour
 {
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private Image unitImage;
+    [SerializeField] private Color playerColor;
+    [SerializeField] private Color enemiesColor;
     [SerializeField] private TMP_Text unitName;
 
     public void Init(CombatUnit combatUnit)
@@ -18,11 +20,13 @@ public class CombatTurnOrderItemUI : MonoBehaviour
         if (hasSprite)
         {
             unitImage.overrideSprite = unitData.sprite;
+            unitImage.color = Color.white;
             unitName.text = string.Empty;
         }
         else
         {
             unitImage.overrideSprite = null;
+            unitImage.color = combatUnit.faction == UnitFactionEnum.Player ? playerColor : enemiesColor;
             unitName.text = unitData.name;
         }
     }

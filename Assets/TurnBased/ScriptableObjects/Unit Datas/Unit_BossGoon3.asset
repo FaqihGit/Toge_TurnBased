@@ -10,11 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 19aeeb8c4dc2fa54ca3d44175648a8e8, type: 3}
-  m_Name: Unit_NpcDummy 3
+  m_Name: Unit_BossGoon3
   m_EditorClassIdentifier: Assembly-CSharp::UnitDataSO
-  name: Npc 4
+  name: Goon 3
+  sprite: {fileID: 0}
   stats:
-    maxHealth: 100
+    maxHealth: 50
     currentHealth: 100
     combatAttack: 10
     combatDefense: 0

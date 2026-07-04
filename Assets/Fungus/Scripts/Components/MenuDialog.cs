@@ -61,11 +61,11 @@ namespace Fungus
             if (ActiveMenuDialog == null)
             {
                 // Use first Menu Dialog found in the scene (if any)
-            #if UNITY_6000
-                var md = GameObject.FindFirstObjectByType<MenuDialog>();
-            #else
+#if UNITY_6000
+                var md = GameObject.FindFirstObjectByType<MenuDialog>(FindObjectsInactive.Include);
+#else
                 var md = GameObject.FindObjectOfType<MenuDialog>();
-            #endif
+#endif
                 if (md != null)
                 {
                     ActiveMenuDialog = md;
@@ -109,11 +109,11 @@ namespace Fungus
         // This method will automatically instantiate one if none exists.
         protected virtual void CheckEventSystem()
         {
-        #if UNITY_6000
+#if UNITY_6000
             EventSystem eventSystem = GameObject.FindFirstObjectByType<EventSystem>();
-        #else
+#else
             EventSystem eventSystem = GameObject.FindObjectOfType<EventSystem>();
-        #endif
+#endif
             if (eventSystem == null)
             {
                 // Auto spawn an Event System from the prefab
@@ -186,7 +186,7 @@ namespace Fungus
             StopAllCoroutines();
 
             //if something was shown notify that we are ending
-            if(nextOptionIndex != 0)
+            if (nextOptionIndex != 0)
                 MenuSignals.DoMenuEnd(this);
 
             nextOptionIndex = 0;
@@ -304,11 +304,11 @@ namespace Fungus
                 return false;
             }
             //if first option notify that a menu has started
-            if(nextOptionIndex == 0)
+            if (nextOptionIndex == 0)
                 MenuSignals.DoMenuStart(this);
 
             var button = cachedButtons[nextOptionIndex];
-            
+
             //move forward for next call
             nextOptionIndex++;
 
@@ -333,7 +333,7 @@ namespace Fungus
             }
 
             button.onClick.AddListener(action);
-            
+
             return true;
         }
 
@@ -410,7 +410,8 @@ namespace Fungus
         /// </summary>
         public virtual int DisplayedOptionsCount
         {
-            get {
+            get
+            {
                 int count = 0;
                 for (int i = 0; i < cachedButtons.Length; i++)
                 {
@@ -424,17 +425,17 @@ namespace Fungus
             }
         }
 
-		/// <summary>
-		/// Shuffle the parent order of the cached buttons, allows for randomising button order, buttons are auto reordered when cleared
-		/// </summary>
-		public void Shuffle(System.Random r)
-		{
-			for (int i = 0; i < CachedButtons.Length; i++)
-			{
-				CachedButtons[i].transform.SetSiblingIndex(r.Next(CachedButtons.Length));
-			}
-		}
+        /// <summary>
+        /// Shuffle the parent order of the cached buttons, allows for randomising button order, buttons are auto reordered when cleared
+        /// </summary>
+        public void Shuffle(System.Random r)
+        {
+            for (int i = 0; i < CachedButtons.Length; i++)
+            {
+                CachedButtons[i].transform.SetSiblingIndex(r.Next(CachedButtons.Length));
+            }
+        }
 
         #endregion
-    }    
+    }
 }

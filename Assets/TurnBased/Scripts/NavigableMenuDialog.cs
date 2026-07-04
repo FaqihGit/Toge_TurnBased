@@ -89,7 +89,7 @@ public class NavigableMenuDialog : MenuDialog
 
         int nextIndex = currentIndex < 0
             ? 0
-            : (currentIndex + direction + options.Length) % options.Length;
+            : Mathf.Clamp(currentIndex + direction, 0, options.Length - 1);
 
         EventSystem.current.SetSelectedGameObject(options[nextIndex].gameObject);
 

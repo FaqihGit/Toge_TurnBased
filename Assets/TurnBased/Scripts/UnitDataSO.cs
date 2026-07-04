@@ -16,7 +16,7 @@ public class UnitDataSO : ScriptableObject
 public class UnitStats
 {
     public float maxHealth = 100;
-    public float currentHealth = 100;
+    [HideInInspector] public float currentHealth = 100;
 
     public float combatAttack = 1;
     public float combatDefense = 0;

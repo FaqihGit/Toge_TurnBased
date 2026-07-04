@@ -19,9 +19,9 @@ MonoBehaviour:
     currentHealth: 100
     combatAttack: 10
     combatDefense: 0
-    combatSpeed: 10
+    combatSpeed: 15
   combatActionList:
   - {fileID: 11400000, guid: 3eee723d6be115c4eb630f78880d063a, type: 2}
-  - {fileID: 11400000, guid: faa9d1f8ec68c62489c1a55298a1f1da, type: 2}
+  - {fileID: 11400000, guid: cc93eada74cd95d41b3471310be8abb1, type: 2}
   - {fileID: 11400000, guid: 74e12ceabf808e24c9eb1bf36008c77d, type: 2}
   - {fileID: 11400000, guid: a5d8b55f5310ae446967a7608bb6c8a7, type: 2}
